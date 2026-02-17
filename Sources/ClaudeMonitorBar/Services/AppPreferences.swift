@@ -6,21 +6,12 @@ class AppPreferences {
 
     var planTier: PlanTier {
         get {
-            // Auto-detect from Keychain on first run
-            if !UserDefaults.standard.bool(forKey: "planTierSet") {
-                if let detected = PlanTier.detectFromKeychain() {
-                    UserDefaults.standard.set(detected.rawValue, forKey: "planTier")
-                    UserDefaults.standard.set(true, forKey: "planTierSet")
-                    return detected
-                }
-            }
             guard let raw = UserDefaults.standard.string(forKey: "planTier"),
                   let tier = PlanTier(rawValue: raw) else { return .pro }
             return tier
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: "planTier")
-            UserDefaults.standard.set(true, forKey: "planTierSet")
         }
     }
 

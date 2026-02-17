@@ -7,14 +7,21 @@ struct MenuBarView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                Text("Claude Usage")
+                if let url = Bundle.module.url(forResource: "claude-icon", withExtension: "png"),
+                   let nsImg = NSImage(contentsOf: url) {
+                    Image(nsImage: nsImg)
+                        .resizable()
+                        .frame(width: 16, height: 16)
+                } else {
+                    Image(systemName: "sparkle")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                Text("Claude Code Usage")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer()
-                Text(sessionManager.planName ?? AppPreferences.shared.planTier.rawValue)
+                Text(sessionManager.planName ?? "")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.4))
             }
@@ -46,6 +53,49 @@ struct MenuBarView: View {
                     }
                 }
                 .padding(.vertical, 8)
+
+                // Plan recommendation
+                if sessionManager.usageLimits.count >= 2 {
+                    let rec = PlanRecommendation.recommend(
+                        currentPlan: sessionManager.planName,
+                        sevenDayUtil: sessionManager.usageLimits[1].utilization,
+                        sevenDayReset: sessionManager.usageLimits[1].resetTimestamp ?? 0,
+                        fiveHourUtil: sessionManager.usageLimits[0].utilization,
+                        fiveHourReset: sessionManager.usageLimits[0].resetTimestamp ?? 0
+                    )
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: rec.icon)
+                            .font(.system(size: 14))
+                            .foregroundStyle(rec.color)
+                        VStack(alignment: .leading, spacing: 2) {
+                            switch rec.action {
+                            case .downgrade(let to, let price):
+                                Text("Consider \(to) (\(price))")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(rec.color)
+                            case .stay:
+                                Text("Plan fits your usage")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(rec.color)
+                            case .upgrade(let to, let price):
+                                Text("Consider \(to) (\(price))")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(rec.color)
+                            }
+                            Text(rec.reason)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.white.opacity(0.4))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(6)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 4)
+                }
 
                 // Subscription renewal
                 if let renewal = sessionManager.renewalDate {
@@ -112,7 +162,7 @@ struct MenuBarView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
-        .frame(width: 260)
+        .frame(width: 360)
         .background(Color(nsColor: NSColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)))
         .onAppear {
             sessionManager.refresh()

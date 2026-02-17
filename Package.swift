@@ -8,7 +8,8 @@ let package = Package(
         .executableTarget(
             name: "ClaudeMonitorBar",
             path: "Sources/ClaudeMonitorBar",
-            exclude: ["Info.plist"]
+            exclude: ["Info.plist"],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "ClaudeMonitorBarTests",

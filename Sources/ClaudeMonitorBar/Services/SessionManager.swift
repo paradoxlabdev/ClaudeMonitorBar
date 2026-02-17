@@ -60,7 +60,7 @@ class SessionManager {
                             resetTimestamp: data.sevenDaySonnetReset
                         )
                     ]
-                    self.overallPercentage = self.usageLimits.map(\.percentage).max() ?? 0
+                    self.overallPercentage = data.fiveHourUtilization
                 } else {
                     self.fetchError = "Unable to fetch usage data"
                 }

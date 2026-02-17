@@ -1,8 +1,26 @@
+# macOS
 .DS_Store
+**/.DS_Store
+
+# Build
 /.build
 /Packages
+
+# App bundle
+*.app/
+
+# Xcode
 xcuserdata/
 DerivedData/
+*.xcworkspace/
+*.dSYM/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+
+# Claude Code local settings
+.claude/
+
+# Credentials
 .netrc
+
+# Legacy
 Usage4Claude-main/
