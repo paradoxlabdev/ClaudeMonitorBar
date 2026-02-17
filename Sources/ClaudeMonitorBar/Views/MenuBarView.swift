@@ -365,6 +365,28 @@ struct SettingsSection: View {
                         prefs.launchAtLogin = val
                     }
             }
+
+            HStack {
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.25))
+                Text("Updates")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+                Button(action: { UpdateChecker.shared.check() }) {
+                    Text(UpdateChecker.shared.updateAvailable
+                         ? "v\(UpdateChecker.shared.latestVersion ?? "") available"
+                         : "Check now")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(UpdateChecker.shared.updateAvailable ? .cyan : .white.opacity(0.5))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
