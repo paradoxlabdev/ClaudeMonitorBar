@@ -6,6 +6,8 @@ A native macOS menu bar app that displays your Claude Code API usage limits in r
 
 <p align="center">
   <img src="images/front.png" alt="Claude Monitor Bar" width="300">
+  &nbsp;&nbsp;&nbsp;
+  <img src="images/settings.png" alt="Settings" width="300">
 </p>
 
 ## Features
@@ -42,7 +44,7 @@ Your profile and subscription info are fetched from the OAuth profile endpoint.
 
 1. Download `ClaudeMonitorBar.zip` from the [latest release](https://github.com/paradoxlabdev/claudemonitorbar/releases/latest)
 2. Unzip and move `ClaudeMonitorBar.app` to `/Applications/`
-3. Right-click the app and select **Open** (first launch only — macOS Gatekeeper warning)
+3. On first launch macOS will block the app — go to **System Settings → Privacy & Security** and click **"Open Anyway"**
 
 ### Build from Source
 
