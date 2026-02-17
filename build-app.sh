@@ -20,8 +20,12 @@ cp "$BUILD_DIR/$APP_NAME" "$APP_DIR/Contents/MacOS/"
 # Copy resource bundle
 cp -R "$BUILD_DIR/${APP_NAME}_${APP_NAME}.bundle" "$APP_DIR/Contents/Resources/"
 
-# Copy Info.plist
+# Copy Info.plist and inject version from source code
+VERSION=$(grep 'static let currentVersion' "Sources/$APP_NAME/Services/UpdateChecker.swift" | sed 's/.*"\(.*\)".*/\1/')
+echo "Version: $VERSION"
 cp "Sources/$APP_NAME/Info.plist" "$APP_DIR/Contents/"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_DIR/Contents/Info.plist"
 
 # Generate app icon (terminal prompt + progress ring)
 echo "Generating app icon..."
