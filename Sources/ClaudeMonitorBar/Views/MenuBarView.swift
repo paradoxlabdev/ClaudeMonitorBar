@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     let sessionManager: SessionManager
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -97,6 +98,15 @@ struct MenuBarView: View {
                     .padding(.top, 4)
                 }
 
+                // Usage history chart
+                if !sessionManager.usageHistory.isEmpty {
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                        .padding(.top, 8)
+
+                    UsageChartView(history: sessionManager.usageHistory)
+                }
+
                 // Subscription renewal
                 if let renewal = sessionManager.renewalDate {
                     HStack {
@@ -124,12 +134,24 @@ struct MenuBarView: View {
                             .foregroundStyle(.white.opacity(0.25))
                     }
                     Spacer()
+                    Text("Auto-refresh: \(Int(AppPreferences.shared.refreshInterval))min")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.2))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
             }
 
-            // Bottom bar: Refresh + Quit
+            // Settings (collapsible)
+            if showSettings {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.top, 6)
+
+                SettingsSection()
+            }
+
+            // Bottom bar
             Divider()
                 .background(Color.white.opacity(0.1))
                 .padding(.top, 8)
@@ -143,6 +165,15 @@ struct MenuBarView: View {
                             .font(.system(size: 12))
                     }
                     .foregroundStyle(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button(action: { withAnimation { showSettings.toggle() } }) {
+                    Image(systemName: "gear")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(showSettings ? 0.8 : 0.4))
                 }
                 .buttonStyle(.plain)
 
@@ -184,5 +215,68 @@ struct MenuBarView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d, yyyy"
         return formatter.string(from: date)
+    }
+}
+
+struct SettingsSection: View {
+    @State private var prefs = AppPreferences.shared
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "bell")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text("Notifications")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.6))
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { prefs.notificationsEnabled },
+                    set: { prefs.notificationsEnabled = $0 }
+                ))
+                .toggleStyle(.switch)
+                .scaleEffect(0.7)
+            }
+
+            HStack {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text("Refresh every")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.6))
+                Spacer()
+                Picker("", selection: Binding(
+                    get: { prefs.refreshInterval },
+                    set: { prefs.refreshInterval = $0 }
+                )) {
+                    Text("1 min").tag(1.0)
+                    Text("5 min").tag(5.0)
+                    Text("10 min").tag(10.0)
+                    Text("30 min").tag(30.0)
+                }
+                .pickerStyle(.menu)
+                .frame(width: 90)
+            }
+
+            HStack {
+                Image(systemName: "play.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text("Launch at Login")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.6))
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { prefs.launchAtLogin },
+                    set: { prefs.launchAtLogin = $0 }
+                ))
+                .toggleStyle(.switch)
+                .scaleEffect(0.7)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
 }

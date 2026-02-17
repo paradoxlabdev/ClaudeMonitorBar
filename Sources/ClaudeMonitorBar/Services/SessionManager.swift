@@ -14,15 +14,42 @@ class SessionManager {
     var subscriptionStatus: String?
     var renewalDate: Date?
 
+    var usageHistory: [UsageSnapshot] = []
+
+    private var refreshTimer: Timer?
+
+    var statusColor: StatusColor {
+        let pct = overallPercentage
+        if pct >= 0.9 { return .red }
+        if pct >= 0.7 { return .yellow }
+        return .green
+    }
+
+    enum StatusColor {
+        case green, yellow, red
+    }
+
     func startMonitoring() {
+        usageHistory = UsageHistory.load()
+        fetchUsage()
+        startAutoRefresh()
+    }
+
+    func stopMonitoring() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    func refresh() {
         fetchUsage()
     }
 
-    func stopMonitoring() {}
-
-    /// Called when menu bar is opened - fetches fresh data
-    func refresh() {
-        fetchUsage()
+    func startAutoRefresh() {
+        refreshTimer?.invalidate()
+        let interval = max(AppPreferences.shared.refreshInterval * 60, 60) // minimum 1 min
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.fetchUsage()
+        }
     }
 
     private func fetchUsage() {
@@ -61,6 +88,19 @@ class SessionManager {
                         )
                     ]
                     self.overallPercentage = data.fiveHourUtilization
+
+                    // Save to history
+                    let snapshot = UsageSnapshot(
+                        timestamp: Date(),
+                        fiveHourUtil: data.fiveHourUtilization,
+                        sevenDayUtil: data.sevenDayUtilization,
+                        sevenDaySonnetUtil: data.sevenDaySonnetUtilization
+                    )
+                    UsageHistory.append(snapshot)
+                    self.usageHistory = UsageHistory.load()
+
+                    // Check notifications
+                    NotificationManager.checkAndNotify(limits: self.usageLimits)
                 } else {
                     self.fetchError = "Unable to fetch usage data"
                 }

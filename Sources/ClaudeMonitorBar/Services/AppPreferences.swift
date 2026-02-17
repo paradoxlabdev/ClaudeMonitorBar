@@ -1,4 +1,5 @@
 import Foundation
+import ServiceManagement
 
 @Observable
 class AppPreferences {
@@ -15,14 +16,33 @@ class AppPreferences {
         }
     }
 
+    /// Auto-refresh interval in minutes
     var refreshInterval: Double {
-        get { UserDefaults.standard.double(forKey: "refreshInterval").nonZero ?? 10.0 }
-        set { UserDefaults.standard.set(newValue, forKey: "refreshInterval") }
+        get { UserDefaults.standard.double(forKey: "refreshInterval").nonZero ?? 5.0 }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "refreshInterval")
+            SessionManager.shared.startAutoRefresh()
+        }
+    }
+
+    var notificationsEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "notificationsEnabled") }
     }
 
     var launchAtLogin: Bool {
-        get { UserDefaults.standard.bool(forKey: "launchAtLogin") }
-        set { UserDefaults.standard.set(newValue, forKey: "launchAtLogin") }
+        get { SMAppService.mainApp.status == .enabled }
+        set {
+            do {
+                if newValue {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                // Silently fail — requires .app bundle
+            }
+        }
     }
 }
 
