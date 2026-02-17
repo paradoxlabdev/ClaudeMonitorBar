@@ -204,7 +204,7 @@ struct MenuBarView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
-        .frame(width: 360)
+        .frame(width: 300)
         .background(Color(nsColor: NSColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)))
         .onAppear {
             sessionManager.refresh()
@@ -220,6 +220,9 @@ struct MenuBarView: View {
 
 struct SettingsSection: View {
     @State private var prefs = AppPreferences.shared
+    private let intervals: [(String, Double)] = [
+        ("1 min", 1), ("5 min", 5), ("10 min", 10), ("30 min", 30)
+    ]
 
     var body: some View {
         VStack(spacing: 8) {
@@ -247,17 +250,20 @@ struct SettingsSection: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
-                Picker("", selection: Binding(
-                    get: { prefs.refreshInterval },
-                    set: { prefs.refreshInterval = $0 }
-                )) {
-                    Text("1 min").tag(1.0)
-                    Text("5 min").tag(5.0)
-                    Text("10 min").tag(10.0)
-                    Text("30 min").tag(30.0)
+                HStack(spacing: 4) {
+                    ForEach(intervals, id: \.1) { label, value in
+                        Button(action: { prefs.refreshInterval = value }) {
+                            Text(label)
+                                .font(.system(size: 9, weight: prefs.refreshInterval == value ? .bold : .regular))
+                                .foregroundStyle(prefs.refreshInterval == value ? .white : .white.opacity(0.35))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(prefs.refreshInterval == value ? Color.white.opacity(0.15) : Color.clear)
+                                .cornerRadius(4)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 90)
             }
 
             HStack {

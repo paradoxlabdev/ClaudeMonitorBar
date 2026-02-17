@@ -82,7 +82,7 @@ struct PlanRecommendation {
         // --- Stay ---
         return PlanRecommendation(
             action: .stay,
-            reason: "Projected \(projectedPct)% by end of week (based on \(daysStr) days). Plan fits your usage well.",
+            reason: "Projected \(projectedPct)% by end of week (based on \(daysStr) days).",
             icon: "checkmark.circle.fill",
             color: .green
         )

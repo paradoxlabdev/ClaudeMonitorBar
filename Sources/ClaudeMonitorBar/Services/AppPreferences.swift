@@ -1,5 +1,4 @@
 import Foundation
-import ServiceManagement
 
 @Observable
 class AppPreferences {
@@ -31,18 +30,49 @@ class AppPreferences {
     }
 
     var launchAtLogin: Bool {
-        get { SMAppService.mainApp.status == .enabled }
+        get { launchAgentExists }
         set {
-            do {
-                if newValue {
-                    try SMAppService.mainApp.register()
-                } else {
-                    try SMAppService.mainApp.unregister()
-                }
-            } catch {
-                // Silently fail — requires .app bundle
+            if newValue {
+                installLaunchAgent()
+            } else {
+                removeLaunchAgent()
             }
         }
+    }
+
+    // MARK: - LaunchAgent
+
+    private var launchAgentURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/LaunchAgents/com.claudemonitor.bar.plist")
+    }
+
+    private var launchAgentExists: Bool {
+        FileManager.default.fileExists(atPath: launchAgentURL.path)
+    }
+
+    private func installLaunchAgent() {
+        // Find the .app bundle path
+        let appPath = Bundle.main.bundlePath
+        guard appPath.hasSuffix(".app") else { return }
+
+        let plist: [String: Any] = [
+            "Label": "com.claudemonitor.bar",
+            "ProgramArguments": ["\(appPath)/Contents/MacOS/ClaudeMonitorBar"],
+            "RunAtLoad": true,
+            "KeepAlive": false
+        ]
+
+        let dir = launchAgentURL.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        if let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) {
+            try? data.write(to: launchAgentURL)
+        }
+    }
+
+    private func removeLaunchAgent() {
+        try? FileManager.default.removeItem(at: launchAgentURL)
     }
 }
 
