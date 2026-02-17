@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct ClaudeMonitorBarApp: App {
     @State private var sessionManager = SessionManager.shared
+    @State private var prefs = AppPreferences.shared
 
     init() {
         NotificationManager.requestPermission()
@@ -17,13 +18,35 @@ struct ClaudeMonitorBarApp: App {
             MenuBarView(sessionManager: sessionManager)
         } label: {
             let color: NSColor = switch sessionManager.statusColor {
-            case .green: .systemGreen
-            case .yellow: .systemYellow
-            case .red: .systemRed
+            case .green: NSColor(red: 0.1, green: 0.85, blue: 0.2, alpha: 1.0)
+            case .yellow: NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
+            case .red: NSColor(red: 1.0, green: 0.2, blue: 0.15, alpha: 1.0)
             }
             Image(nsImage: menuBarIcon(color: color))
         }
         .menuBarExtraStyle(.window)
+    }
+
+    private var isDarkMenuBar: Bool {
+        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    private var ringBackgroundColor: NSColor {
+        let style = prefs.iconStyle
+        switch style {
+        case "light":
+            return NSColor.white.withAlphaComponent(0.5)
+        case "dark":
+            return NSColor.black
+        default: // "auto"
+            return isDarkMenuBar
+                ? NSColor.white.withAlphaComponent(0.3)
+                : NSColor.black.withAlphaComponent(0.15)
+        }
+    }
+
+    private var textColor: (NSColor) -> NSColor {
+        { color in color }
     }
 
     private func menuBarIcon(color: NSColor) -> NSImage {
@@ -37,10 +60,10 @@ struct ClaudeMonitorBarApp: App {
 
         let center = CGPoint(x: 9, y: 9)
         let radius: CGFloat = 6.5
-        let lineWidth: CGFloat = 2.0
+        let lineWidth: CGFloat = 2.5
 
         // Background ring
-        ctx.setStrokeColor(NSColor.gray.withAlphaComponent(0.3).cgColor)
+        ctx.setStrokeColor(ringBackgroundColor.cgColor)
         ctx.setLineWidth(lineWidth)
         ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: .pi * 2, clockwise: false)
         ctx.strokePath()

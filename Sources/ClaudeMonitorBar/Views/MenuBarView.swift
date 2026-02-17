@@ -269,9 +269,13 @@ struct SettingsSection: View {
     @State private var refreshInterval: Double = AppPreferences.shared.refreshInterval
     @State private var notificationsOn: Bool = AppPreferences.shared.notificationsEnabled
     @State private var launchAtLogin: Bool = AppPreferences.shared.launchAtLogin
+    @State private var iconStyle: String = AppPreferences.shared.iconStyle
 
     private let intervals: [(String, Double)] = [
         ("1 min", 1), ("5 min", 5), ("10 min", 10), ("30 min", 30)
+    ]
+    private let iconStyles: [(String, String)] = [
+        ("Auto", "auto"), ("Light", "light"), ("Dark", "dark")
     ]
 
     var body: some View {
@@ -312,6 +316,33 @@ struct SettingsSection: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
                                 .background(refreshInterval == value ? Color.white.opacity(0.1) : Color.clear)
+                                .cornerRadius(4)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            HStack {
+                Image(systemName: "circle.circle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.25))
+                Text("Icon style")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+                HStack(spacing: 4) {
+                    ForEach(iconStyles, id: \.1) { label, value in
+                        Button(action: {
+                            iconStyle = value
+                            prefs.iconStyle = value
+                        }) {
+                            Text(label)
+                                .font(.system(size: 9, weight: iconStyle == value ? .bold : .regular))
+                                .foregroundStyle(iconStyle == value ? .white.opacity(0.7) : .white.opacity(0.25))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(iconStyle == value ? Color.white.opacity(0.1) : Color.clear)
                                 .cornerRadius(4)
                         }
                         .buttonStyle(.plain)

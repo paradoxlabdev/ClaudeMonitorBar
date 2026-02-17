@@ -29,6 +29,11 @@ class AppPreferences {
         set { UserDefaults.standard.set(newValue, forKey: "notificationsEnabled") }
     }
 
+    /// Icon style: "auto", "light", "dark"
+    var iconStyle: String = UserDefaults.standard.string(forKey: "iconStyle") ?? "dark" {
+        didSet { UserDefaults.standard.set(iconStyle, forKey: "iconStyle") }
+    }
+
     var launchAtLogin: Bool {
         get { launchAgentExists }
         set {
