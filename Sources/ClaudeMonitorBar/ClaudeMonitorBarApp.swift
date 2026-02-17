@@ -9,7 +9,7 @@ struct ClaudeMonitorBarApp: App {
         NotificationManager.requestPermission()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             SessionManager.shared.startMonitoring()
-            UpdateChecker.shared.check()
+            UpdateChecker.shared.startPeriodicCheck()
         }
     }
 

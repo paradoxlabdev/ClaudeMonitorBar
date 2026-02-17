@@ -7,14 +7,25 @@ class UpdateChecker {
 
     var latestVersion: String?
     var updateAvailable: Bool = false
+    var upToDate: Bool = false  // true after check confirms no update
     var releaseURL: String?
     var downloadProgress: Double?  // nil = not downloading, 0..1 = progress
     var checkError: String?
 
-    private let currentVersion = "1.0.0"
-    private let repo = "niceparadox/ClaudeMonitorBar"
+    static let currentVersion = "1.0.0"
+    private let repo = "paradoxlabdev/ClaudeMonitorBar"
+    private var periodicTimer: Timer?
+
+    func startPeriodicCheck() {
+        check()
+        periodicTimer?.invalidate()
+        periodicTimer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { [weak self] _ in
+            self?.check()
+        }
+    }
 
     func check() {
+        upToDate = false
         let urlString = "https://api.github.com/repos/\(repo)/releases/latest"
         guard let url = URL(string: urlString) else { return }
 
@@ -54,7 +65,9 @@ class UpdateChecker {
                     }
                 }
 
-                self.updateAvailable = Self.isNewer(latest, than: self.currentVersion)
+                let hasUpdate = Self.isNewer(latest, than: Self.currentVersion)
+                self.updateAvailable = hasUpdate
+                self.upToDate = !hasUpdate
                 self.checkError = nil
             }
         }.resume()

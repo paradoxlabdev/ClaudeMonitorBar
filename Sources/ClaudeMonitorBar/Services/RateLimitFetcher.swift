@@ -24,7 +24,7 @@ enum RateLimitFetcher {
     static func fetchProfile() async -> ProfileData? {
         guard let token = readAccessToken() else { return nil }
 
-        let url = URL(string: "https://api.anthropic.com/api/oauth/profile")!
+        guard let url = URL(string: "https://api.anthropic.com/api/oauth/profile") else { return nil }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -86,7 +86,7 @@ enum RateLimitFetcher {
     static func fetch() async -> RateLimitData? {
         guard let token = readAccessToken() else { return nil }
 
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

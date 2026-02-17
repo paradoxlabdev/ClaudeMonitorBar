@@ -12,7 +12,9 @@ enum UsageHistory {
     private static let maxDays = 30
 
     static var storageURL: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return FileManager.default.temporaryDirectory.appendingPathComponent("ClaudeMonitorBar-history.json")
+        }
         let dir = support.appendingPathComponent("ClaudeMonitorBar")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("history.json")

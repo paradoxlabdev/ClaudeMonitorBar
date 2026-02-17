@@ -228,7 +228,7 @@ struct MenuBarView: View {
                 Button(action: {
                     NSWorkspace.shared.open(URL(string: "https://paradoxlab.dev/")!)
                 }) {
-                    Text("v1.0.0 · paradoxlab.dev")
+                    Text("v\(UpdateChecker.currentVersion) · paradoxlab.dev")
                         .font(.system(size: 10))
                         .foregroundStyle(.white.opacity(0.2))
                 }
@@ -375,11 +375,16 @@ struct SettingsSection: View {
                     .foregroundStyle(.white.opacity(0.4))
                 Spacer()
                 Button(action: { UpdateChecker.shared.check() }) {
-                    Text(UpdateChecker.shared.updateAvailable
-                         ? "v\(UpdateChecker.shared.latestVersion ?? "") available"
-                         : "Check now")
+                    let uc = UpdateChecker.shared
+                    let label = uc.updateAvailable
+                        ? "v\(uc.latestVersion ?? "") available"
+                        : uc.upToDate ? "Up to date" : "Check now"
+                    let color: Color = uc.updateAvailable
+                        ? .cyan
+                        : uc.upToDate ? .green : .white.opacity(0.5)
+                    Text(label)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(UpdateChecker.shared.updateAvailable ? .cyan : .white.opacity(0.5))
+                        .foregroundStyle(color)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color.white.opacity(0.1))
