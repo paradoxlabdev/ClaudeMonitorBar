@@ -6,8 +6,9 @@
 /.build
 /Packages
 
-# App bundle
+# App bundle & release zip
 *.app/
+*.zip
 
 # Xcode
 xcuserdata/

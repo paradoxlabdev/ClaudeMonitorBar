@@ -3,10 +3,12 @@ import Charts
 
 struct UsageChartView: View {
     let history: [UsageSnapshot]
+    let fiveHourReset: Int?
+    let sevenDayReset: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // 5-Hour chart: last 5 windows (25h)
+            // 5-Hour chart: last 5 windows aligned to reset
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Circle().fill(.green).frame(width: 6, height: 6)
@@ -47,7 +49,7 @@ struct UsageChartView: View {
                 .frame(height: 60)
             }
 
-            // 7-Day chart: last 4 weeks
+            // 7-Day chart: last 4 windows aligned to reset
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Circle().fill(.orange).frame(width: 6, height: 6)
@@ -98,17 +100,26 @@ struct UsageChartView: View {
         return .green
     }
 
-    // Sample one point per 5h window over last 25 hours
+    // Windows aligned to the API reset time
+    // Reset = end of current window, so current window started at (reset - 5h)
+    // Previous windows go back in 5h steps from there
     private var fiveHourPoints: [ChartPoint] {
-        let now = Date()
+        let windowSeconds: TimeInterval = 5 * 3600
+        let resetDate: Date
+        if let ts = fiveHourReset {
+            resetDate = Date(timeIntervalSince1970: Double(ts))
+        } else {
+            // Fallback: round up to nearest 5h boundary
+            resetDate = Date()
+        }
+
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         var points: [ChartPoint] = []
 
         for i in (0..<5).reversed() {
-            let windowEnd = now.addingTimeInterval(-Double(i) * 5 * 3600)
-            let windowStart = windowEnd.addingTimeInterval(-5 * 3600)
-            // Find the latest snapshot in this window
+            let windowEnd = resetDate.addingTimeInterval(-Double(i) * windowSeconds)
+            let windowStart = windowEnd.addingTimeInterval(-windowSeconds)
             let snap = history
                 .filter { $0.timestamp > windowStart && $0.timestamp <= windowEnd }
                 .last
@@ -118,16 +129,23 @@ struct UsageChartView: View {
         return points
     }
 
-    // Sample one point per 7-day window over last 28 days
+    // Windows aligned to the API 7-day reset time
     private var sevenDayPoints: [ChartPoint] {
-        let now = Date()
+        let windowSeconds: TimeInterval = 7 * 86400
+        let resetDate: Date
+        if let ts = sevenDayReset {
+            resetDate = Date(timeIntervalSince1970: Double(ts))
+        } else {
+            resetDate = Date()
+        }
+
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
         var points: [ChartPoint] = []
 
         for i in (0..<4).reversed() {
-            let windowEnd = now.addingTimeInterval(-Double(i) * 7 * 86400)
-            let windowStart = windowEnd.addingTimeInterval(-7 * 86400)
+            let windowEnd = resetDate.addingTimeInterval(-Double(i) * windowSeconds)
+            let windowStart = windowEnd.addingTimeInterval(-windowSeconds)
             let snap = history
                 .filter { $0.timestamp > windowStart && $0.timestamp <= windowEnd }
                 .last

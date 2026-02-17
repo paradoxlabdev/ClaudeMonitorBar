@@ -16,7 +16,26 @@ class SessionManager {
 
     var usageHistory: [UsageSnapshot] = []
 
+    // Adaptive refresh state
     private var refreshTimer: Timer?
+    private var unchangedCount: Int = 0
+    private var previousUtilizations: (Double, Double, Double)?
+
+    var currentRefreshInterval: TimeInterval {
+        adaptiveInterval
+    }
+
+    private var adaptiveInterval: TimeInterval {
+        let base = AppPreferences.shared.refreshInterval * 60
+        // Active: data changed recently → use base interval
+        if unchangedCount < 3 { return max(base, 60) }
+        // Short idle: no changes for 3 fetches → 2x base
+        if unchangedCount < 6 { return max(base * 2, 120) }
+        // Medium idle: no changes for 6 fetches → 3x base
+        if unchangedCount < 12 { return max(base * 3, 180) }
+        // Long idle: no changes for 12+ fetches → 5x base
+        return max(base * 5, 300)
+    }
 
     var statusColor: StatusColor {
         let pct = overallPercentage
@@ -32,7 +51,7 @@ class SessionManager {
     func startMonitoring() {
         usageHistory = UsageHistory.load()
         fetchUsage()
-        startAutoRefresh()
+        scheduleNextRefresh()
     }
 
     func stopMonitoring() {
@@ -41,13 +60,18 @@ class SessionManager {
     }
 
     func refresh() {
+        unchangedCount = 0 // Manual refresh resets to active mode
         fetchUsage()
     }
 
     func startAutoRefresh() {
+        scheduleNextRefresh()
+    }
+
+    private func scheduleNextRefresh() {
         refreshTimer?.invalidate()
-        let interval = max(AppPreferences.shared.refreshInterval * 60, 60) // minimum 1 min
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let interval = adaptiveInterval
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
             self?.fetchUsage()
         }
     }
@@ -89,6 +113,18 @@ class SessionManager {
                     ]
                     self.overallPercentage = data.fiveHourUtilization
 
+                    // Adaptive refresh: track if data changed
+                    let current = (data.fiveHourUtilization, data.sevenDayUtilization, data.sevenDaySonnetUtilization)
+                    if let prev = self.previousUtilizations,
+                       abs(prev.0 - current.0) < 0.001,
+                       abs(prev.1 - current.1) < 0.001,
+                       abs(prev.2 - current.2) < 0.001 {
+                        self.unchangedCount += 1
+                    } else {
+                        self.unchangedCount = 0
+                    }
+                    self.previousUtilizations = current
+
                     // Save to history
                     let snapshot = UsageSnapshot(
                         timestamp: Date(),
@@ -110,6 +146,9 @@ class SessionManager {
                     self.subscriptionStatus = profileData.subscriptionStatus
                     self.renewalDate = profileData.renewalDate
                 }
+
+                // Schedule next adaptive refresh
+                self.scheduleNextRefresh()
             }
         }
     }

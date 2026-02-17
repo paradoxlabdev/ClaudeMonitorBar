@@ -102,6 +102,12 @@ iconutil -c icns "$ICONSET_DIR" -o "$APP_DIR/Contents/Resources/AppIcon.icns"
 # Ad-hoc sign
 codesign --force --sign - "$APP_DIR"
 
+# Create zip for GitHub releases (auto-update)
+ZIP_NAME="${APP_NAME}.zip"
+echo "Creating $ZIP_NAME for distribution..."
+ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_NAME"
+
 echo ""
 echo "Done! App created at: $(pwd)/$APP_DIR"
+echo "Release zip: $(pwd)/$ZIP_NAME"
 echo "You can move it to /Applications or double-click to run."

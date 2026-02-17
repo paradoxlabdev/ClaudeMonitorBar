@@ -22,9 +22,18 @@ struct MenuBarView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer()
-                Text(sessionManager.planName.map { "Plan: \($0.replacingOccurrences(of: "Claude ", with: ""))" } ?? "")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.4))
+                VStack(alignment: .trailing, spacing: 1) {
+                    if let plan = sessionManager.planName {
+                        Text("Plan: \(plan.replacingOccurrences(of: "Claude ", with: ""))")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                    if let renewal = sessionManager.renewalDate {
+                        Text("Renews \(renewalFormatted(renewal))")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.white.opacity(0.25))
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
@@ -104,22 +113,11 @@ struct MenuBarView: View {
                         .background(Color.white.opacity(0.1))
                         .padding(.top, 8)
 
-                    UsageChartView(history: sessionManager.usageHistory)
-                }
-
-                // Subscription renewal
-                if let renewal = sessionManager.renewalDate {
-                    HStack {
-                        Image(systemName: "creditcard")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.white.opacity(0.3))
-                        Text("Renews \(renewalFormatted(renewal))")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.35))
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                    UsageChartView(
+                        history: sessionManager.usageHistory,
+                        fiveHourReset: sessionManager.usageLimits.first?.resetTimestamp,
+                        sevenDayReset: sessionManager.usageLimits.count >= 2 ? sessionManager.usageLimits[1].resetTimestamp : nil
+                    )
                 }
 
                 // Footer
@@ -134,7 +132,9 @@ struct MenuBarView: View {
                             .foregroundStyle(.white.opacity(0.25))
                     }
                     Spacer()
-                    Text("Auto-refresh: \(Int(AppPreferences.shared.refreshInterval))min")
+                    let secs = Int(sessionManager.currentRefreshInterval)
+                    let label = secs >= 120 ? "\(secs / 60)min" : "\(secs)s"
+                    Text("Refresh: \(label)")
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.2))
                 }
@@ -151,6 +151,52 @@ struct MenuBarView: View {
                 SettingsSection()
             }
 
+            // Update banner
+            if let progress = UpdateChecker.shared.downloadProgress {
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(0.5)
+                            .frame(width: 12, height: 12)
+                        Text("Updating...")
+                            .font(.system(size: 11, weight: .medium))
+                        Spacer()
+                        Text("\(Int(progress * 100))%")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundStyle(.cyan)
+                    ProgressView(value: progress)
+                        .tint(.cyan)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(Color.cyan.opacity(0.08))
+            } else if UpdateChecker.shared.updateAvailable, let version = UpdateChecker.shared.latestVersion {
+                Button(action: {
+                    UpdateChecker.shared.performUpdate()
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 11))
+                        Text("Update available: v\(version)")
+                            .font(.system(size: 11, weight: .medium))
+                        Spacer()
+                        Text("Install")
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(4)
+                    }
+                    .foregroundStyle(.cyan)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Color.cyan.opacity(0.08))
+                }
+                .buttonStyle(.plain)
+            }
+
             // Bottom bar
             Divider()
                 .background(Color.white.opacity(0.1))
@@ -164,7 +210,7 @@ struct MenuBarView: View {
                         Text("Refresh")
                             .font(.system(size: 12))
                     }
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.3))
                 }
                 .buttonStyle(.plain)
 
@@ -173,7 +219,7 @@ struct MenuBarView: View {
                 Button(action: { withAnimation { showSettings.toggle() } }) {
                     Image(systemName: "gear")
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(showSettings ? 0.8 : 0.4))
+                        .foregroundStyle(.white.opacity(showSettings ? 0.5 : 0.25))
                 }
                 .buttonStyle(.plain)
 
@@ -184,7 +230,7 @@ struct MenuBarView: View {
                 }) {
                     Text("v1.0.0 · paradoxlab.dev")
                         .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.25))
+                        .foregroundStyle(.white.opacity(0.2))
                 }
                 .buttonStyle(.plain)
 
@@ -197,7 +243,7 @@ struct MenuBarView: View {
                         Image(systemName: "xmark.circle")
                             .font(.system(size: 11))
                     }
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.3))
                 }
                 .buttonStyle(.plain)
             }
@@ -219,7 +265,11 @@ struct MenuBarView: View {
 }
 
 struct SettingsSection: View {
-    @State private var prefs = AppPreferences.shared
+    private let prefs = AppPreferences.shared
+    @State private var refreshInterval: Double = AppPreferences.shared.refreshInterval
+    @State private var notificationsOn: Bool = AppPreferences.shared.notificationsEnabled
+    @State private var launchAtLogin: Bool = AppPreferences.shared.launchAtLogin
+
     private let intervals: [(String, Double)] = [
         ("1 min", 1), ("5 min", 5), ("10 min", 10), ("30 min", 30)
     ]
@@ -229,36 +279,39 @@ struct SettingsSection: View {
             HStack {
                 Image(systemName: "bell")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.25))
                 Text("Notifications")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.4))
                 Spacer()
-                Toggle("", isOn: Binding(
-                    get: { prefs.notificationsEnabled },
-                    set: { prefs.notificationsEnabled = $0 }
-                ))
-                .toggleStyle(.switch)
-                .scaleEffect(0.7)
+                Toggle("", isOn: $notificationsOn)
+                    .toggleStyle(.switch)
+                    .scaleEffect(0.7)
+                    .onChange(of: notificationsOn) { _, val in
+                        prefs.notificationsEnabled = val
+                    }
             }
 
             HStack {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.25))
                 Text("Refresh every")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.4))
                 Spacer()
                 HStack(spacing: 4) {
                     ForEach(intervals, id: \.1) { label, value in
-                        Button(action: { prefs.refreshInterval = value }) {
+                        Button(action: {
+                            refreshInterval = value
+                            prefs.refreshInterval = value
+                        }) {
                             Text(label)
-                                .font(.system(size: 9, weight: prefs.refreshInterval == value ? .bold : .regular))
-                                .foregroundStyle(prefs.refreshInterval == value ? .white : .white.opacity(0.35))
+                                .font(.system(size: 9, weight: refreshInterval == value ? .bold : .regular))
+                                .foregroundStyle(refreshInterval == value ? .white.opacity(0.7) : .white.opacity(0.25))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
-                                .background(prefs.refreshInterval == value ? Color.white.opacity(0.15) : Color.clear)
+                                .background(refreshInterval == value ? Color.white.opacity(0.1) : Color.clear)
                                 .cornerRadius(4)
                         }
                         .buttonStyle(.plain)
@@ -269,17 +322,17 @@ struct SettingsSection: View {
             HStack {
                 Image(systemName: "play.circle")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.25))
                 Text("Launch at Login")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.4))
                 Spacer()
-                Toggle("", isOn: Binding(
-                    get: { prefs.launchAtLogin },
-                    set: { prefs.launchAtLogin = $0 }
-                ))
-                .toggleStyle(.switch)
-                .scaleEffect(0.7)
+                Toggle("", isOn: $launchAtLogin)
+                    .toggleStyle(.switch)
+                    .scaleEffect(0.7)
+                    .onChange(of: launchAtLogin) { _, val in
+                        prefs.launchAtLogin = val
+                    }
             }
         }
         .padding(.horizontal, 16)
