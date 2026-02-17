@@ -3,13 +3,18 @@ import UserNotifications
 
 enum NotificationManager {
     private static var notifiedThresholds: Set<String> = []
+    private static var available = false
 
     static func requestPermission() {
+        // UNUserNotificationCenter requires a valid bundle identifier
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        available = true
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     static func checkAndNotify(limits: [UsageLimit]) {
-        guard AppPreferences.shared.notificationsEnabled else { return }
+        guard available, AppPreferences.shared.notificationsEnabled else { return }
+
         for limit in limits {
             let pct = Int(limit.percentage * 100)
             for threshold in [80, 90, 100] {
