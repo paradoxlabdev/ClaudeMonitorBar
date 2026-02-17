@@ -6,7 +6,7 @@ struct ClaudeMonitorBarApp: App {
     @State private var prefs = AppPreferences.shared
 
     init() {
-        NotificationManager.requestPermission()
+        NotificationManager.setup()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             SessionManager.shared.startMonitoring()
             UpdateChecker.shared.startPeriodicCheck()

@@ -16,6 +16,12 @@ class SessionManager {
 
     var usageHistory: [UsageSnapshot] = []
 
+    // Debug mode
+    var debugMode: Bool = false
+    var mockFiveHour: Double = 0.3
+    var mockSevenDay: Double = 0.5
+    var mockSonnet: Double = 0.2
+
     // Adaptive refresh state
     private var refreshTimer: Timer?
     private var unchangedCount: Int = 0
@@ -76,8 +82,26 @@ class SessionManager {
         }
     }
 
+    func applyMockData() {
+        usageLimits = [
+            UsageLimit(name: "5-Hour Limit", utilization: mockFiveHour, resetTimestamp: Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
+            UsageLimit(name: "7-Day Limit", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970)),
+            UsageLimit(name: "7D Sonnet Limit", utilization: mockSonnet, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970))
+        ]
+        overallPercentage = mockFiveHour
+        lastFetchTime = Date()
+        fetchError = nil
+    }
+
     private func fetchUsage() {
         guard !isLoading else { return }
+
+        if debugMode {
+            applyMockData()
+            scheduleNextRefresh()
+            return
+        }
+
         isLoading = true
         fetchError = nil
 
