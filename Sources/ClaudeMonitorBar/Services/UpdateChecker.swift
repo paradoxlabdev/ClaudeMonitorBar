@@ -145,6 +145,7 @@ class UpdateChecker {
             let unzipProcess = Process()
             unzipProcess.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
             unzipProcess.arguments = ["-o", zipURL.path, "-d", tempDir.path]
+            unzipProcess.currentDirectoryURL = URL(fileURLWithPath: "/tmp")
             unzipProcess.standardOutput = nil
             unzipProcess.standardError = nil
             try unzipProcess.run()
@@ -183,6 +184,7 @@ class UpdateChecker {
             let launcher = Process()
             launcher.executableURL = URL(fileURLWithPath: "/bin/bash")
             launcher.arguments = [scriptURL.path]
+            launcher.currentDirectoryURL = URL(fileURLWithPath: "/tmp")
             try launcher.run()
 
             // Quit ourselves so the script can replace us

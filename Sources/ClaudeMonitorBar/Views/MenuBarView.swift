@@ -3,14 +3,12 @@ import SwiftUI
 struct MenuBarView: View {
     let sessionManager: SessionManager
     @State private var showSettings = false
-    @State private var showDebug = false
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                if let url = Bundle.module.url(forResource: "claude-icon", withExtension: "png"),
-                   let nsImg = NSImage(contentsOf: url) {
+                if let nsImg = Self.loadClaudeIcon() {
                     Image(nsImage: nsImg)
                         .resizable()
                         .frame(width: 16, height: 16)
@@ -149,12 +147,7 @@ struct MenuBarView: View {
                     .background(Color.white.opacity(0.1))
                     .padding(.top, 6)
 
-                SettingsSection(showDebug: $showDebug, sessionManager: sessionManager)
-            }
-
-            // Debug panel (toggled from settings)
-            if showDebug {
-                DebugSection(sessionManager: sessionManager)
+                SettingsSection(sessionManager: sessionManager)
             }
 
             // Update banner
@@ -263,6 +256,23 @@ struct MenuBarView: View {
         }
     }
 
+    /// Load claude-icon.png from resource bundle without triggering Desktop access.
+    private static func loadClaudeIcon() -> NSImage? {
+        // Try Contents/Resources/ resource bundle first (avoids SPM hardcoded path fallback)
+        let bundleName = "ClaudeMonitorBar_ClaudeMonitorBar.bundle"
+        if let resourceURL = Bundle.main.resourceURL {
+            let iconPath = resourceURL
+                .appendingPathComponent(bundleName)
+                .appendingPathComponent("claude-icon.png")
+            if let img = NSImage(contentsOf: iconPath) { return img }
+        }
+        // Fallback to Bundle.module (works when running from swift build)
+        if let url = Bundle.module.url(forResource: "claude-icon", withExtension: "png") {
+            return NSImage(contentsOf: url)
+        }
+        return nil
+    }
+
     private func renewalFormatted(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d, yyyy"
@@ -271,7 +281,6 @@ struct MenuBarView: View {
 }
 
 struct SettingsSection: View {
-    @Binding var showDebug: Bool
     let sessionManager: SessionManager
     private let prefs = AppPreferences.shared
     @State private var refreshInterval: Double = AppPreferences.shared.refreshInterval
@@ -405,21 +414,22 @@ struct SettingsSection: View {
                 Image(systemName: "ladybug")
                     .font(.system(size: 11))
                     .foregroundStyle(.orange.opacity(0.4))
-                Text("Debug Mode")
+                Text("Debug")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.4))
                 Spacer()
-                Toggle("", isOn: $showDebug)
-                    .toggleStyle(.switch)
-                    .scaleEffect(0.7)
-                    .onChange(of: showDebug) { _, val in
-                        sessionManager.debugMode = val
-                        if val {
-                            sessionManager.applyMockData()
-                        } else {
-                            sessionManager.refresh()
-                        }
-                    }
+                Button(action: {
+                    DebugWindowController.shared.toggle(sessionManager: sessionManager)
+                }) {
+                    Text(DebugWindowController.shared.isOpen ? "Close" : "Open")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.orange.opacity(0.6))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)
@@ -427,103 +437,3 @@ struct SettingsSection: View {
     }
 }
 
-struct DebugSection: View {
-    let sessionManager: SessionManager
-    @State private var apiLog = APILog.shared
-
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: "ladybug")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.orange.opacity(0.6))
-                Text("Debug Mode")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.orange.opacity(0.7))
-                Spacer()
-            }
-
-            // Mock data sliders
-            VStack(spacing: 6) {
-                sliderRow("5-Hour", value: Binding(
-                    get: { sessionManager.mockFiveHour },
-                    set: { sessionManager.mockFiveHour = $0; sessionManager.applyMockData() }
-                ))
-                sliderRow("7-Day", value: Binding(
-                    get: { sessionManager.mockSevenDay },
-                    set: { sessionManager.mockSevenDay = $0; sessionManager.applyMockData() }
-                ))
-                sliderRow("Sonnet", value: Binding(
-                    get: { sessionManager.mockSonnet },
-                    set: { sessionManager.mockSonnet = $0; sessionManager.applyMockData() }
-                ))
-            }
-
-            // Force notification button
-            Button(action: {
-                NotificationManager.forceTestNotification()
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "bell.badge")
-                        .font(.system(size: 10))
-                    Text("Send Test Notification")
-                        .font(.system(size: 10))
-                }
-                .foregroundStyle(.orange.opacity(0.7))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(4)
-            }
-            .buttonStyle(.plain)
-
-            // API Log
-            if !apiLog.entries.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("API Log")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.3))
-
-                    ForEach(apiLog.entries.prefix(10)) { entry in
-                        HStack(spacing: 4) {
-                            Text(entry.endpoint)
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.5))
-                            Spacer()
-                            Text("\(entry.statusCode)")
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(entry.statusCode == 200 ? .green.opacity(0.6) : .red.opacity(0.6))
-                            Text(String(format: "%.0fms", entry.duration * 1000))
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.3))
-                        }
-                        if let error = entry.error {
-                            Text(error)
-                                .font(.system(size: 8))
-                                .foregroundStyle(.red.opacity(0.5))
-                        }
-                    }
-                }
-                .padding(.top, 4)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color.orange.opacity(0.04))
-    }
-
-    private func sliderRow(_ label: String, value: Binding<Double>) -> some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.4))
-                .frame(width: 42, alignment: .leading)
-            Slider(value: value, in: 0...1, step: 0.01)
-                .tint(.orange)
-            Text("\(Int(value.wrappedValue * 100))%")
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.5))
-                .frame(width: 30, alignment: .trailing)
-        }
-    }
-}

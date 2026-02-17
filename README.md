@@ -22,6 +22,7 @@ A native macOS menu bar app that displays your Claude Code API usage limits in r
 - **Notifications** — alerts at 80%, 90%, and 100% usage thresholds
 - **Launch at Login** — optional auto-start via LaunchAgent
 - **Subscription info** — shows your plan tier and renewal date
+- **Debug mode** — mock data sliders, test notifications, and API request log
 
 ## How It Works
 
