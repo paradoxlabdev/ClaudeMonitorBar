@@ -3,10 +3,11 @@ set -e
 
 APP_NAME="ClaudeMonitorBar"
 APP_DIR="$APP_NAME.app"
-BUILD_DIR=".build/arm64-apple-macosx/debug"
+CONFIG="${1:-release}"
+BUILD_DIR=".build/arm64-apple-macosx/$CONFIG"
 
-echo "Building..."
-swift build
+echo "Building ($CONFIG)..."
+swift build -c "$CONFIG"
 
 echo "Creating app bundle..."
 rm -rf "$APP_DIR"

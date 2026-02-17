@@ -21,7 +21,7 @@ struct MenuBarView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer()
-                Text(sessionManager.planName ?? "")
+                Text(sessionManager.planName.map { "Plan: \($0.replacingOccurrences(of: "Claude ", with: ""))" } ?? "")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.4))
             }
