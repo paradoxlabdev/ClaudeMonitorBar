@@ -148,9 +148,14 @@ struct MenuBarView: View {
 
                 Spacer()
 
-                Text("v1.0.0")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.25))
+                Button(action: {
+                    NSWorkspace.shared.open(URL(string: "https://paradoxlab.dev/")!)
+                }) {
+                    Text("v1.0.0 · paradoxlab.dev")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.25))
+                }
+                .buttonStyle(.plain)
 
                 Spacer()
 
