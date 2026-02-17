@@ -16,52 +16,56 @@ struct ClaudeMonitorBarApp: App {
         MenuBarExtra {
             MenuBarView(sessionManager: sessionManager)
         } label: {
-            MenuBarIcon(statusColor: sessionManager.statusColor)
+            let color: NSColor = switch sessionManager.statusColor {
+            case .green: .systemGreen
+            case .yellow: .systemYellow
+            case .red: .systemRed
+            }
+            Image(nsImage: menuBarIcon(color: color))
         }
         .menuBarExtraStyle(.window)
     }
-}
 
-struct MenuBarIcon: View {
-    let statusColor: SessionManager.StatusColor
-
-    private var color: Color {
-        switch statusColor {
-        case .green: return .green
-        case .yellow: return .yellow
-        case .red: return .red
+    private func menuBarIcon(color: NSColor) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let img = NSImage(size: size)
+        img.lockFocus()
+        guard let ctx = NSGraphicsContext.current?.cgContext else {
+            img.unlockFocus()
+            return img
         }
-    }
 
-    var body: some View {
-        HStack(spacing: 3) {
-            Canvas { context, size in
-                let center = CGPoint(x: size.width / 2, y: size.height / 2)
-                let radius = min(size.width, size.height) / 2 - 1.5
+        let center = CGPoint(x: 9, y: 9)
+        let radius: CGFloat = 6.5
+        let lineWidth: CGFloat = 2.0
 
-                // Background ring
-                let bgPath = Path { p in
-                    p.addArc(center: center, radius: radius,
-                             startAngle: .zero, endAngle: .degrees(360), clockwise: false)
-                }
-                context.stroke(bgPath, with: .color(.gray.opacity(0.3)), lineWidth: 2)
+        // Background ring
+        ctx.setStrokeColor(NSColor.gray.withAlphaComponent(0.3).cgColor)
+        ctx.setLineWidth(lineWidth)
+        ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: .pi * 2, clockwise: false)
+        ctx.strokePath()
 
-                // Progress arc
-                let progress = Path { p in
-                    p.addArc(center: center, radius: radius,
-                             startAngle: .degrees(-90),
-                             endAngle: .degrees(-90 + 360 * 0.66),
-                             clockwise: false)
-                }
-                context.stroke(progress, with: .color(color), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+        // Progress arc
+        ctx.setStrokeColor(color.cgColor)
+        ctx.setLineWidth(lineWidth)
+        ctx.setLineCap(.round)
+        let startAngle = CGFloat.pi / 2
+        let pct = max(sessionManager.overallPercentage, 0.05)
+        let endAngle = startAngle - .pi * 2 * pct
+        ctx.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+        ctx.strokePath()
 
-                // ">_" text
-                let text = Text(">_")
-                    .font(.system(size: 6, weight: .bold, design: .monospaced))
-                    .foregroundColor(color)
-                context.draw(text, at: center)
-            }
-            .frame(width: 16, height: 16)
-        }
+        // ">_" text
+        let font = NSFont.monospacedSystemFont(ofSize: 6, weight: .bold)
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
+        let text = ">_" as NSString
+        let textSize = text.size(withAttributes: attrs)
+        let textRect = NSRect(x: (18 - textSize.width) / 2, y: (18 - textSize.height) / 2,
+                              width: textSize.width, height: textSize.height)
+        text.draw(in: textRect, withAttributes: attrs)
+
+        img.unlockFocus()
+        img.isTemplate = false
+        return img
     }
 }
