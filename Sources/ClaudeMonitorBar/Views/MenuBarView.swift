@@ -17,7 +17,7 @@ struct MenuBarView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                Text("Claude Code Usage")
+                Text("Claude Monitor Bar")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer()
@@ -145,6 +145,12 @@ struct MenuBarView: View {
                     .foregroundStyle(.white.opacity(0.5))
                 }
                 .buttonStyle(.plain)
+
+                Spacer()
+
+                Text("v1.0.0")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.25))
 
                 Spacer()
 
