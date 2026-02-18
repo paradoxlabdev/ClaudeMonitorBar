@@ -136,6 +136,9 @@ struct DebugWindowView: View {
                         VStack(spacing: 2) {
                             ForEach(apiLog.entries) { entry in
                                 HStack(spacing: 6) {
+                                    Text(Self.timeFormatter.string(from: entry.timestamp))
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.25))
                                     Text(entry.endpoint)
                                         .font(.system(size: 10, design: .monospaced))
                                         .foregroundStyle(.white.opacity(0.5))
@@ -165,6 +168,12 @@ struct DebugWindowView: View {
         .frame(minWidth: 280, minHeight: 300)
         .background(Color(nsColor: NSColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)))
     }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss"
+        return f
+    }()
 
     private func sliderRow(_ label: String, value: Binding<Double>) -> some View {
         HStack(spacing: 6) {
