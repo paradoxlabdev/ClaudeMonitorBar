@@ -97,6 +97,20 @@ struct DebugWindowView: View {
                 ))
             }
 
+            // Rate limited toggle
+            HStack {
+                Text("Rate Limited")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { sessionManager.rateLimited },
+                    set: { sessionManager.rateLimited = $0 }
+                ))
+                .toggleStyle(.switch)
+                .scaleEffect(0.7)
+            }
+
             Divider().background(Color.white.opacity(0.1))
 
             // Force notification button
