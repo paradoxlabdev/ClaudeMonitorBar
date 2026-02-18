@@ -9,6 +9,7 @@ class SessionManager {
     var isLoading: Bool = false
     var lastFetchTime: Date?
     var fetchError: String?
+    var rateLimited: Bool = false
 
     var planName: String?
     var subscriptionStatus: String?
@@ -118,6 +119,7 @@ class SessionManager {
 
                 if let data {
                     self.fetchError = nil
+                    self.rateLimited = data.status == "rate_limited"
                     self.usageLimits = [
                         UsageLimit(
                             name: "5-Hour Limit",

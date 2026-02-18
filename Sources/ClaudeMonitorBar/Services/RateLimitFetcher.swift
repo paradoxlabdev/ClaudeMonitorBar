@@ -138,12 +138,7 @@ enum RateLimitFetcher {
             return nil
         }
         let fetchDuration = Date().timeIntervalSince(fetchStart)
-        guard httpResponse.statusCode == 200 else {
-            await APILog.shared.add(endpoint: "messages", statusCode: httpResponse.statusCode, duration: fetchDuration, error: "HTTP \(httpResponse.statusCode)")
-            return nil
-        }
-        await APILog.shared.add(endpoint: "messages", statusCode: 200, duration: fetchDuration)
-
+        let statusCode = httpResponse.statusCode
         let headers = httpResponse.allHeaderFields
 
         func headerDouble(_ key: String) -> Double {
@@ -160,24 +155,51 @@ enum RateLimitFetcher {
             return 0
         }
 
-        // Headers are case-insensitive in HTTPURLResponse
+        // Try to read rate limit headers from any response (even error responses)
         let h5util = headerDouble("anthropic-ratelimit-unified-5h-utilization")
         let h5reset = headerInt("anthropic-ratelimit-unified-5h-reset")
         let d7util = headerDouble("anthropic-ratelimit-unified-7d-utilization")
         let d7reset = headerInt("anthropic-ratelimit-unified-7d-reset")
         let s7util = headerDouble("anthropic-ratelimit-unified-7d_sonnet-utilization")
         let s7reset = headerInt("anthropic-ratelimit-unified-7d_sonnet-reset")
-        let status = headers["anthropic-ratelimit-unified-status"] as? String ?? "unknown"
+        let hasRateLimitHeaders = h5util > 0 || d7util > 0
 
-        return RateLimitData(
-            fiveHourUtilization: h5util,
-            fiveHourReset: h5reset,
-            sevenDayUtilization: d7util,
-            sevenDayReset: d7reset,
-            sevenDaySonnetUtilization: s7util,
-            sevenDaySonnetReset: s7reset,
-            status: status
-        )
+        if statusCode == 200 {
+            await APILog.shared.add(endpoint: "messages", statusCode: 200, duration: fetchDuration)
+            let status = headers["anthropic-ratelimit-unified-status"] as? String ?? "unknown"
+            return RateLimitData(
+                fiveHourUtilization: h5util, fiveHourReset: h5reset,
+                sevenDayUtilization: d7util, sevenDayReset: d7reset,
+                sevenDaySonnetUtilization: s7util, sevenDaySonnetReset: s7reset,
+                status: status
+            )
+        }
+
+        // Non-200: if rate limit headers present, use them (works for 429, 404, etc.)
+        if hasRateLimitHeaders {
+            await APILog.shared.add(endpoint: "messages", statusCode: statusCode, duration: fetchDuration, error: "HTTP \(statusCode) (headers available)")
+            return RateLimitData(
+                fiveHourUtilization: h5util, fiveHourReset: h5reset,
+                sevenDayUtilization: d7util, sevenDayReset: d7reset,
+                sevenDaySonnetUtilization: s7util, sevenDaySonnetReset: s7reset,
+                status: "rate_limited"
+            )
+        }
+
+        // 429 without headers: assume 100% on 5h limit
+        if statusCode == 429 {
+            await APILog.shared.add(endpoint: "messages", statusCode: 429, duration: fetchDuration, error: "Rate limited")
+            return RateLimitData(
+                fiveHourUtilization: 1.0, fiveHourReset: 0,
+                sevenDayUtilization: 0, sevenDayReset: 0,
+                sevenDaySonnetUtilization: 0, sevenDaySonnetReset: 0,
+                status: "rate_limited"
+            )
+        }
+
+        // Other errors: no usable data
+        await APILog.shared.add(endpoint: "messages", statusCode: statusCode, duration: fetchDuration, error: "HTTP \(statusCode)")
+        return nil
     }
 
     /// Read the OAuth access token from Keychain using the `security` CLI.

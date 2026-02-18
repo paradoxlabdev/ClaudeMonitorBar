@@ -106,6 +106,24 @@ struct MenuBarView: View {
                     .padding(.top, 4)
                 }
 
+                // Rate limited banner
+                if sessionManager.rateLimited {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                        Text("Rate limit reached — refresh paused until reset")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundStyle(.red.opacity(0.8))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red.opacity(0.08))
+                    .cornerRadius(6)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 4)
+                }
+
                 // Usage history chart
                 if !sessionManager.usageHistory.isEmpty {
                     Divider()
