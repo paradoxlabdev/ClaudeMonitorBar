@@ -2,12 +2,13 @@ import Foundation
 
 /// Fetches real rate limit data by making a minimal API call with the OAuth token.
 /// Same approach as Claude Code's /usage command internally.
+@MainActor
 @Observable
 class APILog {
     static let shared = APILog()
     var entries: [Entry] = []
 
-    struct Entry: Identifiable {
+    struct Entry: Identifiable, Sendable {
         let id = UUID()
         let timestamp: Date
         let endpoint: String
@@ -54,17 +55,17 @@ enum RateLimitFetcher {
         let profileStart = Date()
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let httpResponse = response as? HTTPURLResponse else {
-            APILog.shared.add(endpoint: "profile", statusCode: 0, duration: Date().timeIntervalSince(profileStart), error: "Network error")
+            await APILog.shared.add(endpoint: "profile", statusCode: 0, duration: Date().timeIntervalSince(profileStart), error: "Network error")
             return nil
         }
         let profileDuration = Date().timeIntervalSince(profileStart)
         guard httpResponse.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let org = json["organization"] as? [String: Any] else {
-            APILog.shared.add(endpoint: "profile", statusCode: httpResponse.statusCode, duration: profileDuration, error: "HTTP \(httpResponse.statusCode)")
+            await APILog.shared.add(endpoint: "profile", statusCode: httpResponse.statusCode, duration: profileDuration, error: "HTTP \(httpResponse.statusCode)")
             return nil
         }
-        APILog.shared.add(endpoint: "profile", statusCode: 200, duration: profileDuration)
+        await APILog.shared.add(endpoint: "profile", statusCode: 200, duration: profileDuration)
 
         let orgType = org["organization_type"] as? String ?? ""
         let rateLimitTier = org["rate_limit_tier"] as? String ?? ""
@@ -133,15 +134,15 @@ enum RateLimitFetcher {
         let fetchStart = Date()
         guard let (_, response) = try? await URLSession.shared.data(for: request),
               let httpResponse = response as? HTTPURLResponse else {
-            APILog.shared.add(endpoint: "messages", statusCode: 0, duration: Date().timeIntervalSince(fetchStart), error: "Network error")
+            await APILog.shared.add(endpoint: "messages", statusCode: 0, duration: Date().timeIntervalSince(fetchStart), error: "Network error")
             return nil
         }
         let fetchDuration = Date().timeIntervalSince(fetchStart)
         guard httpResponse.statusCode == 200 else {
-            APILog.shared.add(endpoint: "messages", statusCode: httpResponse.statusCode, duration: fetchDuration, error: "HTTP \(httpResponse.statusCode)")
+            await APILog.shared.add(endpoint: "messages", statusCode: httpResponse.statusCode, duration: fetchDuration, error: "HTTP \(httpResponse.statusCode)")
             return nil
         }
-        APILog.shared.add(endpoint: "messages", statusCode: 200, duration: fetchDuration)
+        await APILog.shared.add(endpoint: "messages", statusCode: 200, duration: fetchDuration)
 
         let headers = httpResponse.allHeaderFields
 
