@@ -12,7 +12,7 @@ class UpdateChecker {
     var downloadProgress: Double?  // nil = not downloading, 0..1 = progress
     var checkError: String?
 
-    static let currentVersion = "1.5.3"
+    static let currentVersion = "1.5.4"
     private let repo = "paradoxlabdev/ClaudeMonitorBar"
     private var periodicTimer: Timer?
 

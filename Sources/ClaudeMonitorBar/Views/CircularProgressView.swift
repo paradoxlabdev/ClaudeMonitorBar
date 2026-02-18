@@ -9,9 +9,9 @@ struct CircularProgressView: View {
 
     private var progressColor: Color {
         switch percentage {
-        case ..<0.5: return .green
-        case 0.5..<0.8: return .yellow
-        case 0.8...: return .red
+        case ..<0.7: return .green
+        case 0.7..<0.9: return .yellow
+        case 0.9...: return .red
         default: return .gray
         }
     }

@@ -40,12 +40,13 @@ struct PlanRecommendation {
 
         // How many days have elapsed in the 7-day window
         let hoursUntil7d = max(0, (Double(sevenDayReset) - now) / 3600)
-        let daysElapsed = max(0.25, 7.0 - hoursUntil7d / 24.0)
+        let daysElapsed = max(1.0, 7.0 - hoursUntil7d / 24.0)
 
         // Simple linear projection: if you keep this pace, where will you end up?
         let projected = min(sevenDayUtil / daysElapsed * 7.0, 2.0)
 
-        let daysStr = String(format: "%.0f", daysElapsed)
+        let daysInt = Int(daysElapsed.rounded())
+        let daysStr = daysInt == 1 ? "1 day" : "\(daysInt) days"
         let projectedPct = Int(projected * 100)
 
         // --- Downgrade? ---
@@ -58,7 +59,7 @@ struct PlanRecommendation {
                 let saving = current.price - cheaper.price
                 return PlanRecommendation(
                     action: .downgrade(to: cheaper.label, price: "$\(cheaper.price)/mo"),
-                    reason: "Projected \(projectedPct)% by end of week (based on \(daysStr) days). On \(cheaper.label) it would be ~\(Int(onCheaper * 100))%. Save $\(saving)/mo.",
+                    reason: "Projected \(projectedPct)% by end of week (based on \(daysStr)). On \(cheaper.label) it would be ~\(Int(onCheaper * 100))%. Save $\(saving)/mo.",
                     icon: "arrow.down.circle.fill",
                     color: .green
                 )
@@ -73,7 +74,7 @@ struct PlanRecommendation {
 
             return PlanRecommendation(
                 action: .upgrade(to: higher.label, price: "$\(higher.price)/mo"),
-                reason: "Projected \(projectedPct)% by end of week (based on \(daysStr) days). On \(higher.label) it would be ~\(Int(onHigher * 100))%.",
+                reason: "Projected \(projectedPct)% by end of week (based on \(daysStr)). On \(higher.label) it would be ~\(Int(onHigher * 100))%.",
                 icon: "arrow.up.circle.fill",
                 color: .orange
             )
@@ -82,7 +83,7 @@ struct PlanRecommendation {
         // --- Stay ---
         return PlanRecommendation(
             action: .stay,
-            reason: "Projected \(projectedPct)% by end of week (based on \(daysStr) days).",
+            reason: "Projected \(projectedPct)% by end of week (based on \(daysStr)).",
             icon: "checkmark.circle.fill",
             color: .green
         )

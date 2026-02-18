@@ -133,7 +133,9 @@ struct MenuBarView: View {
                     UsageChartView(
                         history: sessionManager.usageHistory,
                         fiveHourReset: sessionManager.usageLimits.first?.resetTimestamp,
-                        sevenDayReset: sessionManager.usageLimits.count >= 2 ? sessionManager.usageLimits[1].resetTimestamp : nil
+                        sevenDayReset: sessionManager.usageLimits.count >= 2 ? sessionManager.usageLimits[1].resetTimestamp : nil,
+                        currentFiveHour: sessionManager.usageLimits.first?.utilization ?? 0,
+                        currentSevenDay: sessionManager.usageLimits.count >= 2 ? sessionManager.usageLimits[1].utilization : 0
                     )
                 }
 

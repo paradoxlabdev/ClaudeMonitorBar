@@ -5,6 +5,8 @@ struct UsageChartView: View {
     let history: [UsageSnapshot]
     let fiveHourReset: Int?
     let sevenDayReset: Int?
+    var currentFiveHour: Double = 0
+    var currentSevenDay: Double = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -124,7 +126,9 @@ struct UsageChartView: View {
                 .filter { $0.timestamp > windowStart && $0.timestamp <= windowEnd }
                 .last
             let label = formatter.string(from: windowEnd)
-            points.append(ChartPoint(label: label, value: snap?.fiveHourUtil ?? 0))
+            // Current window: use live value
+            let value = (i == 0) ? currentFiveHour : (snap?.fiveHourUtil ?? 0)
+            points.append(ChartPoint(label: label, value: value))
         }
         return points
     }
@@ -150,7 +154,8 @@ struct UsageChartView: View {
                 .filter { $0.timestamp > windowStart && $0.timestamp <= windowEnd }
                 .last
             let label = formatter.string(from: windowEnd)
-            points.append(ChartPoint(label: label, value: snap?.sevenDayUtil ?? 0))
+            let value = (i == 0) ? currentSevenDay : (snap?.sevenDayUtil ?? 0)
+            points.append(ChartPoint(label: label, value: value))
         }
         return points
     }

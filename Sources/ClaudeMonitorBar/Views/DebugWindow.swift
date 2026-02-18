@@ -44,6 +44,12 @@ class DebugWindowController {
         panel.isFloatingPanel = true
         panel.becomesKeyOnlyIfNeeded = true
         panel.center()
+        // Shift left so it doesn't overlap the menu bar popup
+        if let frame = panel.screen?.visibleFrame {
+            var origin = panel.frame.origin
+            origin.x = frame.minX + frame.width * 0.375 - panel.frame.width / 2
+            panel.setFrameOrigin(origin)
+        }
 
         // Observe window close
         NotificationCenter.default.addObserver(
@@ -57,9 +63,13 @@ class DebugWindowController {
             sessionManager.refresh()
         }
 
-        panel.orderFront(nil)
         window = panel
         isOpen = true
+
+        // Show without stealing focus from MenuBarExtra popup
+        DispatchQueue.main.async {
+            panel.orderFrontRegardless()
+        }
     }
 
     func close() {
