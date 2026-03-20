@@ -85,9 +85,9 @@ class SessionManager {
 
     func applyMockData() {
         usageLimits = [
-            UsageLimit(name: "5-Hour Limit", utilization: mockFiveHour, resetTimestamp: Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
-            UsageLimit(name: "7-Day Limit", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970)),
-            UsageLimit(name: "7D Sonnet Limit", utilization: mockSonnet, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970))
+            UsageLimit(name: "Current session", utilization: mockFiveHour, resetTimestamp: Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
+            UsageLimit(name: "Current week", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970)),
+            UsageLimit(name: "Week (Sonnet)", utilization: mockSonnet, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970))
         ]
         overallPercentage = mockFiveHour
         lastFetchTime = Date()
@@ -122,17 +122,17 @@ class SessionManager {
                     self.rateLimited = data.status == "rate_limited"
                     self.usageLimits = [
                         UsageLimit(
-                            name: "5-Hour Limit",
+                            name: "Current session",
                             utilization: data.fiveHourUtilization,
                             resetTimestamp: data.fiveHourReset
                         ),
                         UsageLimit(
-                            name: "7-Day Limit",
+                            name: "Current week",
                             utilization: data.sevenDayUtilization,
                             resetTimestamp: data.sevenDayReset
                         ),
                         UsageLimit(
-                            name: "7D Sonnet Limit",
+                            name: "Week (Sonnet)",
                             utilization: data.sevenDaySonnetUtilization,
                             resetTimestamp: data.sevenDaySonnetReset
                         )
