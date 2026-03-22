@@ -39,7 +39,6 @@ enum RateLimitFetcher {
     struct ProfileData {
         let planName: String           // e.g. "Claude Max 5x"
         let subscriptionStatus: String // e.g. "active"
-        let renewalDate: Date?         // next billing date
     }
 
     /// Fetch profile/subscription info from the OAuth profile endpoint.
@@ -70,8 +69,6 @@ enum RateLimitFetcher {
         let orgType = org["organization_type"] as? String ?? ""
         let rateLimitTier = org["rate_limit_tier"] as? String ?? ""
         let subStatus = org["subscription_status"] as? String ?? "unknown"
-        let subCreatedAt = org["subscription_created_at"] as? String
-
         // Build plan name
         let planName: String
         if rateLimitTier.contains("20x") {
@@ -86,27 +83,9 @@ enum RateLimitFetcher {
             planName = orgType
         }
 
-        // Calculate next renewal: subscription_created_at + N months (next future date)
-        var renewalDate: Date?
-        if let createdStr = subCreatedAt {
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let createdDate = formatter.date(from: createdStr) {
-                let calendar = Calendar.current
-                let now = Date()
-                // Find the next monthly anniversary
-                var candidate = createdDate
-                while candidate <= now {
-                    candidate = calendar.date(byAdding: .month, value: 1, to: candidate) ?? candidate.addingTimeInterval(30 * 86400)
-                }
-                renewalDate = candidate
-            }
-        }
-
         return ProfileData(
             planName: planName,
-            subscriptionStatus: subStatus,
-            renewalDate: renewalDate
+            subscriptionStatus: subStatus
         )
     }
 

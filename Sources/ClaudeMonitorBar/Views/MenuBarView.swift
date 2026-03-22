@@ -27,11 +27,6 @@ struct MenuBarView: View {
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.4))
                     }
-                    if let renewal = sessionManager.renewalDate {
-                        Text("Renews \(renewalFormatted(renewal))")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.white.opacity(0.25))
-                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -293,11 +288,6 @@ struct MenuBarView: View {
         return nil
     }
 
-    private func renewalFormatted(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter.string(from: date)
-    }
 }
 
 struct SettingsSection: View {

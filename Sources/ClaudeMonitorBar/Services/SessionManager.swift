@@ -13,7 +13,6 @@ class SessionManager {
 
     var planName: String?
     var subscriptionStatus: String?
-    var renewalDate: Date?
 
     var usageHistory: [UsageSnapshot] = []
 
@@ -170,7 +169,6 @@ class SessionManager {
                 if let profileData {
                     self.planName = profileData.planName
                     self.subscriptionStatus = profileData.subscriptionStatus
-                    self.renewalDate = profileData.renewalDate
                 }
 
                 // Schedule next adaptive refresh
