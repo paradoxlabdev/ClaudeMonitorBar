@@ -134,6 +134,15 @@ struct MenuBarView: View {
                     )
                 }
 
+                // Token stats from local Claude Code logs
+                if let localUsage = sessionManager.localUsage, !localUsage.isEmpty {
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                        .padding(.top, 4)
+
+                    LocalUsageView(stats: localUsage)
+                }
+
                 // Footer
                 HStack {
                     if sessionManager.isLoading {
@@ -146,6 +155,13 @@ struct MenuBarView: View {
                             .foregroundStyle(.white.opacity(0.25))
                     }
                     Spacer()
+                    if let overage = overageLabel {
+                        Text(overage)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.white.opacity(0.2))
+                            .help("Paid overage beyond plan limits is not available")
+                        Spacer()
+                    }
                     let secs = Int(sessionManager.currentRefreshInterval)
                     let label = secs >= 120 ? "\(secs / 60)min" : "\(secs)s"
                     Text("Refresh: \(label)")
@@ -271,6 +287,20 @@ struct MenuBarView: View {
         }
     }
 
+    /// "Overage: …" footer label, or nil in the default healthy state.
+    private var overageLabel: String? {
+        if sessionManager.overageDisabledReason == "org_level_disabled" {
+            return "Overage: off (org)"
+        }
+        if !sessionManager.overageDisabledReason.isEmpty {
+            return "Overage: off"
+        }
+        if sessionManager.overageStatus == "rejected" {
+            return "Overage: rejected"
+        }
+        return nil
+    }
+
     /// Load claude-icon.png from resource bundle without triggering Desktop access.
     private static func loadClaudeIcon() -> NSImage? {
         // Try Contents/Resources/ resource bundle first (avoids SPM hardcoded path fallback)
@@ -297,12 +327,20 @@ struct SettingsSection: View {
     @State private var notificationsOn: Bool = AppPreferences.shared.notificationsEnabled
     @State private var launchAtLogin: Bool = AppPreferences.shared.launchAtLogin
     @State private var iconStyle: String = AppPreferences.shared.iconStyle
+    @State private var menuBarStyle: String = AppPreferences.shared.menuBarStyle
+    @State private var menuBarMetric: String = AppPreferences.shared.menuBarMetric
 
     private let intervals: [(String, Double)] = [
         ("1 min", 1), ("5 min", 5), ("10 min", 10), ("30 min", 30)
     ]
     private let iconStyles: [(String, String)] = [
         ("Auto", "auto"), ("Light", "light"), ("Dark", "dark")
+    ]
+    private let menuBarStyles: [(String, String)] = [
+        ("Ring", "ring"), ("%", "percent")
+    ]
+    private let menuBarMetrics: [(String, String)] = [
+        ("5h", "5h"), ("7d", "7d")
     ]
 
     var body: some View {
@@ -373,6 +411,62 @@ struct SettingsSection: View {
                                 .cornerRadius(4)
                         }
                         .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            HStack {
+                Image(systemName: "menubar.rectangle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.25))
+                Text("Menu bar")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.4))
+                Spacer()
+                HStack(spacing: 4) {
+                    ForEach(menuBarStyles, id: \.1) { label, value in
+                        Button(action: {
+                            menuBarStyle = value
+                            prefs.menuBarStyle = value
+                        }) {
+                            Text(label)
+                                .font(.system(size: 9, weight: menuBarStyle == value ? .bold : .regular))
+                                .foregroundStyle(menuBarStyle == value ? .white.opacity(0.7) : .white.opacity(0.25))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(menuBarStyle == value ? Color.white.opacity(0.1) : Color.clear)
+                                .cornerRadius(4)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if menuBarStyle == "percent" {
+                HStack {
+                    Image(systemName: "percent")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.25))
+                    Text("Icon metric")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Spacer()
+                    HStack(spacing: 4) {
+                        ForEach(menuBarMetrics, id: \.1) { label, value in
+                            Button(action: {
+                                menuBarMetric = value
+                                prefs.menuBarMetric = value
+                            }) {
+                                Text(label)
+                                    .font(.system(size: 9, weight: menuBarMetric == value ? .bold : .regular))
+                                    .foregroundStyle(menuBarMetric == value ? .white.opacity(0.7) : .white.opacity(0.25))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(menuBarMetric == value ? Color.white.opacity(0.1) : Color.clear)
+                                    .cornerRadius(4)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }

@@ -17,14 +17,45 @@ struct ClaudeMonitorBarApp: App {
         MenuBarExtra {
             MenuBarView(sessionManager: sessionManager)
         } label: {
-            let color: NSColor = switch sessionManager.statusColor {
-            case .green: NSColor(red: 0.1, green: 0.85, blue: 0.2, alpha: 1.0)
-            case .yellow: NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
-            case .red: NSColor(red: 1.0, green: 0.2, blue: 0.15, alpha: 1.0)
+            if prefs.menuBarStyle == "percent" {
+                Image(nsImage: percentIcon())
+            } else {
+                Image(nsImage: menuBarIcon(color: Self.statusNSColor(for: sessionManager.overallPercentage)))
             }
-            Image(nsImage: menuBarIcon(color: color))
         }
         .menuBarExtraStyle(.window)
+    }
+
+    /// Value of the limit selected to drive the percent menu bar text.
+    private var metricValue: Double {
+        if prefs.menuBarMetric == "7d", sessionManager.usageLimits.count >= 2 {
+            return sessionManager.usageLimits[1].percentage
+        }
+        return sessionManager.overallPercentage
+    }
+
+    private static func statusNSColor(for pct: Double) -> NSColor {
+        if pct >= 0.9 { return NSColor(red: 1.0, green: 0.2, blue: 0.15, alpha: 1.0) }
+        if pct >= 0.7 { return NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0) }
+        return NSColor(red: 0.1, green: 0.85, blue: 0.2, alpha: 1.0)
+    }
+
+    private func percentIcon() -> NSImage {
+        let pct = metricValue
+        let text = "\(Int(pct * 100))%" as NSString
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: Self.statusNSColor(for: pct)
+        ]
+        let textSize = text.size(withAttributes: attrs)
+        let size = NSSize(width: ceil(textSize.width) + 2, height: 18)
+        let img = NSImage(size: size)
+        img.lockFocus()
+        text.draw(at: NSPoint(x: 1, y: (size.height - textSize.height) / 2), withAttributes: attrs)
+        img.unlockFocus()
+        img.isTemplate = false
+        return img
     }
 
     private var isDarkMenuBar: Bool {

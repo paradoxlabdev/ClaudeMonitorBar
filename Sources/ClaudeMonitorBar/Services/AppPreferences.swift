@@ -34,6 +34,16 @@ class AppPreferences {
         didSet { UserDefaults.standard.set(iconStyle, forKey: "iconStyle") }
     }
 
+    /// Menu bar style: "ring" (progress ring icon) or "percent" (numeric text)
+    var menuBarStyle: String = UserDefaults.standard.string(forKey: "menuBarStyle") ?? "ring" {
+        didSet { UserDefaults.standard.set(menuBarStyle, forKey: "menuBarStyle") }
+    }
+
+    /// Which limit drives the percent menu bar text: "5h" or "7d"
+    var menuBarMetric: String = UserDefaults.standard.string(forKey: "menuBarMetric") ?? "5h" {
+        didSet { UserDefaults.standard.set(menuBarMetric, forKey: "menuBarMetric") }
+    }
+
     var launchAtLogin: Bool {
         get { launchAgentExists }
         set {

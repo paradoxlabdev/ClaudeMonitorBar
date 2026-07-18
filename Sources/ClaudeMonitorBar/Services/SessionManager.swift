@@ -14,7 +14,11 @@ class SessionManager {
     var planName: String?
     var subscriptionStatus: String?
 
+    var overageStatus: String = ""
+    var overageDisabledReason: String = ""
+
     var usageHistory: [UsageSnapshot] = []
+    var localUsage: LocalUsageStats?
 
     // Debug mode
     var debugMode: Bool = false
@@ -83,8 +87,8 @@ class SessionManager {
 
     func applyMockData() {
         usageLimits = [
-            UsageLimit(name: "Current session", utilization: mockFiveHour, resetTimestamp: Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
-            UsageLimit(name: "Current week", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970))
+            UsageLimit(name: "Current session", utilization: mockFiveHour, resetTimestamp: Int(Date().addingTimeInterval(3600).timeIntervalSince1970), isBinding: mockFiveHour >= mockSevenDay),
+            UsageLimit(name: "Current week", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970), isBinding: mockSevenDay > mockFiveHour)
         ]
         overallPercentage = mockFiveHour
         lastFetchTime = Date()
@@ -93,6 +97,8 @@ class SessionManager {
 
     private func fetchUsage() {
         guard !isLoading else { return }
+
+        scanLocalUsage()
 
         if debugMode {
             applyMockData()
@@ -121,14 +127,20 @@ class SessionManager {
                         UsageLimit(
                             name: "Current session",
                             utilization: data.fiveHourUtilization,
-                            resetTimestamp: data.fiveHourReset
+                            resetTimestamp: data.fiveHourReset,
+                            isBinding: data.representativeClaim == "five_hour",
+                            isRejected: data.fiveHourStatus == "rejected"
                         ),
                         UsageLimit(
                             name: "Current week",
                             utilization: data.sevenDayUtilization,
-                            resetTimestamp: data.sevenDayReset
+                            resetTimestamp: data.sevenDayReset,
+                            isBinding: data.representativeClaim == "seven_day",
+                            isRejected: data.sevenDayStatus == "rejected"
                         )
                     ]
+                    self.overageStatus = data.overageStatus
+                    self.overageDisabledReason = data.overageDisabledReason
                     self.overallPercentage = data.fiveHourUtilization
 
                     // Adaptive refresh: track if data changed
@@ -164,6 +176,16 @@ class SessionManager {
 
                 // Schedule next adaptive refresh
                 self.scheduleNextRefresh()
+            }
+        }
+    }
+
+    /// Aggregate token stats from local Claude Code logs, off the main thread.
+    private func scanLocalUsage() {
+        Task.detached(priority: .utility) { [weak self] in
+            let stats = await LocalUsageScanner.shared.scan()
+            await MainActor.run {
+                self?.localUsage = stats
             }
         }
     }

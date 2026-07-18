@@ -32,6 +32,12 @@ enum RateLimitFetcher {
         let sevenDayUtilization: Double
         let sevenDayReset: Int
         let status: String
+        /// Which limit currently binds: "five_hour" | "seven_day" ("" if absent)
+        let representativeClaim: String
+        let fiveHourStatus: String
+        let sevenDayStatus: String
+        let overageStatus: String
+        let overageDisabledReason: String
     }
 
     struct ProfileData {
@@ -132,11 +138,20 @@ enum RateLimitFetcher {
             return 0
         }
 
+        func headerString(_ key: String) -> String {
+            headers[key] as? String ?? ""
+        }
+
         // Try to read rate limit headers from any response (even error responses)
         let h5util = headerDouble("anthropic-ratelimit-unified-5h-utilization")
         let h5reset = headerInt("anthropic-ratelimit-unified-5h-reset")
         let d7util = headerDouble("anthropic-ratelimit-unified-7d-utilization")
         let d7reset = headerInt("anthropic-ratelimit-unified-7d-reset")
+        let claim = headerString("anthropic-ratelimit-unified-representative-claim")
+        let h5status = headerString("anthropic-ratelimit-unified-5h-status")
+        let d7status = headerString("anthropic-ratelimit-unified-7d-status")
+        let overageStatus = headerString("anthropic-ratelimit-unified-overage-status")
+        let overageReason = headerString("anthropic-ratelimit-unified-overage-disabled-reason")
         let hasRateLimitHeaders = h5util > 0 || d7util > 0
 
         if statusCode == 200 {
@@ -145,7 +160,10 @@ enum RateLimitFetcher {
             return RateLimitData(
                 fiveHourUtilization: h5util, fiveHourReset: h5reset,
                 sevenDayUtilization: d7util, sevenDayReset: d7reset,
-                status: status
+                status: status,
+                representativeClaim: claim,
+                fiveHourStatus: h5status, sevenDayStatus: d7status,
+                overageStatus: overageStatus, overageDisabledReason: overageReason
             )
         }
 
@@ -155,7 +173,10 @@ enum RateLimitFetcher {
             return RateLimitData(
                 fiveHourUtilization: h5util, fiveHourReset: h5reset,
                 sevenDayUtilization: d7util, sevenDayReset: d7reset,
-                status: "rate_limited"
+                status: "rate_limited",
+                representativeClaim: claim,
+                fiveHourStatus: h5status, sevenDayStatus: d7status,
+                overageStatus: overageStatus, overageDisabledReason: overageReason
             )
         }
 
@@ -165,7 +186,10 @@ enum RateLimitFetcher {
             return RateLimitData(
                 fiveHourUtilization: 1.0, fiveHourReset: 0,
                 sevenDayUtilization: 0, sevenDayReset: 0,
-                status: "rate_limited"
+                status: "rate_limited",
+                representativeClaim: "five_hour",
+                fiveHourStatus: "rejected", sevenDayStatus: "",
+                overageStatus: "", overageDisabledReason: ""
             )
         }
 

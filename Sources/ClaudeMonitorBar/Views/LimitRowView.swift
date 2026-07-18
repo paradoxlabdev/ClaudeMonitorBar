@@ -11,7 +11,14 @@ struct LimitRowView: View {
 
             Text(limit.name)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(limit.isRejected ? .red.opacity(0.9) : .white.opacity(0.9))
+
+            if limit.isBinding {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(limit.statusColor.opacity(0.8))
+                    .help("This limit currently constrains your usage")
+            }
 
             Spacer()
 

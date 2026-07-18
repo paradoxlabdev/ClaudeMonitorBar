@@ -5,6 +5,8 @@ struct UsageLimit: Identifiable {
     let name: String
     let utilization: Double  // 0.0 to 1.0 from API header
     let resetTimestamp: Int? // Unix timestamp from API header
+    var isBinding: Bool = false  // this limit is the API's representative claim
+    var isRejected: Bool = false // per-limit status is "rejected"
 
     var percentage: Double {
         min(max(utilization, 0), 1.0)
