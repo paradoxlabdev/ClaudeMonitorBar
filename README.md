@@ -12,8 +12,11 @@ A native macOS menu bar app that displays your Claude Code API usage limits in r
 
 ## Features
 
-- **Real-time usage monitoring** — 5-hour, 7-day, and 7-day Sonnet rate limits from Anthropic's API
+- **Real-time usage monitoring** — 5-hour and 7-day rate limits from Anthropic's API
+- **Local usage stats** — per-model token usage (today / 7 days) aggregated from Claude Code session logs, with message counts and In/Out/Cache totals
+- **Binding limit indicator** — a bolt marks the limit that currently constrains your usage, plus an overage-availability note
 - **Circular progress ring** with color-coded menu bar icon (green/yellow/red)
+- **Percent menu bar style** — optionally show a numeric percentage (5h or 7d) instead of the ring
 - **Reset times** for each limit window
 - **Plan recommendation** — suggests upgrade, downgrade, or stay based on 7-day usage projection
 - **Usage history charts** — 5-hour and 7-day window bar charts with persistent history
@@ -21,18 +24,23 @@ A native macOS menu bar app that displays your Claude Code API usage limits in r
 - **Auto-update** — checks GitHub for new releases and self-installs updates
 - **Notifications** — alerts at 80%, 90%, and 100% usage thresholds
 - **Launch at Login** — optional auto-start via LaunchAgent
-- **Subscription info** — shows your plan tier and renewal date
+- **Subscription info** — shows your plan tier
 - **Debug mode** — mock data sliders, test notifications, and API request log
 
 ## How It Works
 
 The app reads your Claude Code OAuth token from the macOS Keychain and makes a minimal API call (`max_tokens=1`) to Anthropic's Messages API. The response headers contain real-time rate limit data:
 
-- `anthropic-ratelimit-unified-5h-utilization`
-- `anthropic-ratelimit-unified-7d-utilization`
-- `anthropic-ratelimit-unified-7d_sonnet-utilization`
+- `anthropic-ratelimit-unified-5h-utilization` / `-reset` / `-status`
+- `anthropic-ratelimit-unified-7d-utilization` / `-reset` / `-status`
+- `anthropic-ratelimit-unified-representative-claim`
+- `anthropic-ratelimit-unified-overage-status`
 
 Your profile and subscription info are fetched from the OAuth profile endpoint.
+
+The **Local usage** section is computed entirely offline: the app scans Claude Code
+session logs in `~/.claude/projects/**/*.jsonl` (last 7 days, cached per file) and
+aggregates per-model token usage — no extra API calls.
 
 ## Requirements
 
@@ -86,6 +94,7 @@ Sources/ClaudeMonitorBar/
   Services/
     RateLimitFetcher.swift            # API calls (usage data + profile)
     SessionManager.swift              # Observable state + adaptive refresh
+    LocalUsageScanner.swift           # Claude Code JSONL log scanner (local token stats)
     AppPreferences.swift              # Settings (UserDefaults + LaunchAgent)
     NotificationManager.swift         # Usage threshold alerts
     UpdateChecker.swift               # GitHub release auto-updater
@@ -94,6 +103,7 @@ Sources/ClaudeMonitorBar/
     CircularProgressView.swift        # Progress ring
     LimitRowView.swift                # Individual limit row
     UsageChartView.swift              # 5-hour and 7-day history charts
+    LocalUsageView.swift              # Local per-model token stats section
 ```
 
 ## Security
