@@ -101,10 +101,6 @@ struct DebugWindowView: View {
                     get: { sessionManager.mockSevenDay },
                     set: { sessionManager.mockSevenDay = $0; sessionManager.applyMockData() }
                 ))
-                sliderRow("Sonnet", value: Binding(
-                    get: { sessionManager.mockSonnet },
-                    set: { sessionManager.mockSonnet = $0; sessionManager.applyMockData() }
-                ))
             }
 
             // Rate limited toggle

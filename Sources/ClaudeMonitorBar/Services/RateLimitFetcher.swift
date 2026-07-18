@@ -31,8 +31,6 @@ enum RateLimitFetcher {
         let fiveHourReset: Int
         let sevenDayUtilization: Double
         let sevenDayReset: Int
-        let sevenDaySonnetUtilization: Double
-        let sevenDaySonnetReset: Int
         let status: String
     }
 
@@ -139,8 +137,6 @@ enum RateLimitFetcher {
         let h5reset = headerInt("anthropic-ratelimit-unified-5h-reset")
         let d7util = headerDouble("anthropic-ratelimit-unified-7d-utilization")
         let d7reset = headerInt("anthropic-ratelimit-unified-7d-reset")
-        let s7util = headerDouble("anthropic-ratelimit-unified-7d_sonnet-utilization")
-        let s7reset = headerInt("anthropic-ratelimit-unified-7d_sonnet-reset")
         let hasRateLimitHeaders = h5util > 0 || d7util > 0
 
         if statusCode == 200 {
@@ -149,7 +145,6 @@ enum RateLimitFetcher {
             return RateLimitData(
                 fiveHourUtilization: h5util, fiveHourReset: h5reset,
                 sevenDayUtilization: d7util, sevenDayReset: d7reset,
-                sevenDaySonnetUtilization: s7util, sevenDaySonnetReset: s7reset,
                 status: status
             )
         }
@@ -160,7 +155,6 @@ enum RateLimitFetcher {
             return RateLimitData(
                 fiveHourUtilization: h5util, fiveHourReset: h5reset,
                 sevenDayUtilization: d7util, sevenDayReset: d7reset,
-                sevenDaySonnetUtilization: s7util, sevenDaySonnetReset: s7reset,
                 status: "rate_limited"
             )
         }
@@ -171,7 +165,6 @@ enum RateLimitFetcher {
             return RateLimitData(
                 fiveHourUtilization: 1.0, fiveHourReset: 0,
                 sevenDayUtilization: 0, sevenDayReset: 0,
-                sevenDaySonnetUtilization: 0, sevenDaySonnetReset: 0,
                 status: "rate_limited"
             )
         }

@@ -20,12 +20,11 @@ class SessionManager {
     var debugMode: Bool = false
     var mockFiveHour: Double = 0.3
     var mockSevenDay: Double = 0.5
-    var mockSonnet: Double = 0.2
 
     // Adaptive refresh state
     private var refreshTimer: Timer?
     private var unchangedCount: Int = 0
-    private var previousUtilizations: (Double, Double, Double)?
+    private var previousUtilizations: (Double, Double)?
 
     var currentRefreshInterval: TimeInterval {
         adaptiveInterval
@@ -85,8 +84,7 @@ class SessionManager {
     func applyMockData() {
         usageLimits = [
             UsageLimit(name: "Current session", utilization: mockFiveHour, resetTimestamp: Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
-            UsageLimit(name: "Current week", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970)),
-            UsageLimit(name: "Week (Sonnet)", utilization: mockSonnet, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970))
+            UsageLimit(name: "Current week", utilization: mockSevenDay, resetTimestamp: Int(Date().addingTimeInterval(86400).timeIntervalSince1970))
         ]
         overallPercentage = mockFiveHour
         lastFetchTime = Date()
@@ -129,21 +127,15 @@ class SessionManager {
                             name: "Current week",
                             utilization: data.sevenDayUtilization,
                             resetTimestamp: data.sevenDayReset
-                        ),
-                        UsageLimit(
-                            name: "Week (Sonnet)",
-                            utilization: data.sevenDaySonnetUtilization,
-                            resetTimestamp: data.sevenDaySonnetReset
                         )
                     ]
                     self.overallPercentage = data.fiveHourUtilization
 
                     // Adaptive refresh: track if data changed
-                    let current = (data.fiveHourUtilization, data.sevenDayUtilization, data.sevenDaySonnetUtilization)
+                    let current = (data.fiveHourUtilization, data.sevenDayUtilization)
                     if let prev = self.previousUtilizations,
                        abs(prev.0 - current.0) < 0.001,
-                       abs(prev.1 - current.1) < 0.001,
-                       abs(prev.2 - current.2) < 0.001 {
+                       abs(prev.1 - current.1) < 0.001 {
                         self.unchangedCount += 1
                     } else {
                         self.unchangedCount = 0
@@ -154,8 +146,7 @@ class SessionManager {
                     let snapshot = UsageSnapshot(
                         timestamp: Date(),
                         fiveHourUtil: data.fiveHourUtilization,
-                        sevenDayUtil: data.sevenDayUtilization,
-                        sevenDaySonnetUtil: data.sevenDaySonnetUtilization
+                        sevenDayUtil: data.sevenDayUtilization
                     )
                     UsageHistory.append(snapshot)
                     self.usageHistory = UsageHistory.load()

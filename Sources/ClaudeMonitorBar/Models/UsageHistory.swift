@@ -5,7 +5,6 @@ struct UsageSnapshot: Codable, Identifiable {
     let timestamp: Date
     let fiveHourUtil: Double
     let sevenDayUtil: Double
-    let sevenDaySonnetUtil: Double
 }
 
 enum UsageHistory {
