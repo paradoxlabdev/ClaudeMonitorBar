@@ -4,7 +4,8 @@ struct CircularProgressView: View {
     let percentage: Double
 
     private var displayPercentage: Int {
-        Int(percentage * 100)
+        guard percentage.isFinite else { return 0 }
+        return Int((min(max(percentage, 0), 1) * 100).rounded())
     }
 
     private var progressColor: Color {
@@ -32,25 +33,25 @@ struct CircularProgressView: View {
         ZStack {
             // Track
             Circle()
-                .stroke(Color.white.opacity(0.1), lineWidth: 10)
+                .stroke(Color.white.opacity(0.1), lineWidth: 8)
 
             // Progress
             Circle()
                 .trim(from: 0, to: percentage)
-                .stroke(progressColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .stroke(progressColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.8), value: percentage)
 
             // Percentage text
             VStack(spacing: 2) {
                 Text("\(displayPercentage)%")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                 Text("Used")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.6))
             }
         }
-        .frame(width: 120, height: 120)
+        .frame(width: 90, height: 90)
     }
 }

@@ -122,24 +122,22 @@ enum RateLimitFetcher {
         }
         let fetchDuration = Date().timeIntervalSince(fetchStart)
         let statusCode = httpResponse.statusCode
-        let headers = httpResponse.allHeaderFields
+
+        // value(forHTTPHeaderField:) is case-insensitive; subscripting the bridged
+        // allHeaderFields dictionary is not and breaks behind HTTP/1.1 proxies
+        func headerString(_ key: String) -> String {
+            httpResponse.value(forHTTPHeaderField: key) ?? ""
+        }
 
         func headerDouble(_ key: String) -> Double {
-            if let val = headers[key] as? String {
-                return Double(val) ?? 0
-            }
-            return 0
+            // Reject non-finite values ("nan"/"inf" parse as Double and would
+            // crash Int() conversions downstream); clamp to a sane range
+            guard let d = Double(headerString(key)), d.isFinite else { return 0 }
+            return min(max(d, 0), 10)
         }
 
         func headerInt(_ key: String) -> Int {
-            if let val = headers[key] as? String {
-                return Int(val) ?? 0
-            }
-            return 0
-        }
-
-        func headerString(_ key: String) -> String {
-            headers[key] as? String ?? ""
+            Int(headerString(key)) ?? 0
         }
 
         // Try to read rate limit headers from any response (even error responses)
@@ -156,7 +154,8 @@ enum RateLimitFetcher {
 
         if statusCode == 200 {
             await APILog.shared.add(endpoint: "messages", statusCode: 200, duration: fetchDuration)
-            let status = headers["anthropic-ratelimit-unified-status"] as? String ?? "unknown"
+            let rawStatus = headerString("anthropic-ratelimit-unified-status")
+            let status = rawStatus.isEmpty ? "unknown" : rawStatus
             return RateLimitData(
                 fiveHourUtilization: h5util, fiveHourReset: h5reset,
                 sevenDayUtilization: d7util, sevenDayReset: d7reset,

@@ -48,6 +48,8 @@ struct LocalUsageView: View {
                                 Text(row.model)
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(.white.opacity(0.8))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                                 Text("\(row.messages) msgs")
                                     .font(.system(size: 9))
                                     .foregroundStyle(.white.opacity(0.3))
@@ -60,6 +62,7 @@ struct LocalUsageView: View {
                                 Text("\(Self.formatTokens(row.outputTokens)) out")
                                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.white.opacity(0.6))
+                                    .layoutPriority(1)
                             }
                         }
                     }

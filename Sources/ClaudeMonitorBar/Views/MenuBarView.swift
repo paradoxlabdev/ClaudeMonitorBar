@@ -134,14 +134,6 @@ struct MenuBarView: View {
                     )
                 }
 
-                // Token stats from local Claude Code logs
-                if let localUsage = sessionManager.localUsage, !localUsage.isEmpty {
-                    Divider()
-                        .background(Color.white.opacity(0.1))
-                        .padding(.top, 4)
-
-                    LocalUsageView(stats: localUsage)
-                }
 
                 // Footer
                 HStack {
@@ -170,6 +162,16 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
+            }
+
+            // Token stats from local Claude Code logs — outside the fetch-state
+            // branch so they stay visible even when the network fetch fails
+            if let localUsage = sessionManager.localUsage, !localUsage.isEmpty {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.top, 4)
+
+                LocalUsageView(stats: localUsage)
             }
 
             // Settings (collapsible)
@@ -388,29 +390,32 @@ struct SettingsSection: View {
                 }
             }
 
-            HStack {
-                Image(systemName: "circle.circle")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.25))
-                Text("Icon style")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.4))
-                Spacer()
-                HStack(spacing: 4) {
-                    ForEach(iconStyles, id: \.1) { label, value in
-                        Button(action: {
-                            iconStyle = value
-                            prefs.iconStyle = value
-                        }) {
-                            Text(label)
-                                .font(.system(size: 9, weight: iconStyle == value ? .bold : .regular))
-                                .foregroundStyle(iconStyle == value ? .white.opacity(0.7) : .white.opacity(0.25))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(iconStyle == value ? Color.white.opacity(0.1) : Color.clear)
-                                .cornerRadius(4)
+            // Ring background style — only relevant for the ring icon
+            if menuBarStyle == "ring" {
+                HStack {
+                    Image(systemName: "circle.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.25))
+                    Text("Icon style")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Spacer()
+                    HStack(spacing: 4) {
+                        ForEach(iconStyles, id: \.1) { label, value in
+                            Button(action: {
+                                iconStyle = value
+                                prefs.iconStyle = value
+                            }) {
+                                Text(label)
+                                    .font(.system(size: 9, weight: iconStyle == value ? .bold : .regular))
+                                    .foregroundStyle(iconStyle == value ? .white.opacity(0.7) : .white.opacity(0.25))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(iconStyle == value ? Color.white.opacity(0.1) : Color.clear)
+                                    .cornerRadius(4)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

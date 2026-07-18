@@ -180,12 +180,20 @@ class SessionManager {
         }
     }
 
+    private var scanInFlight = false
+
     /// Aggregate token stats from local Claude Code logs, off the main thread.
+    /// Coalesced: popover opens and refresh ticks can fire in bursts, so skip
+    /// while a scan runs and re-use results younger than 30 s.
     private func scanLocalUsage() {
+        guard !scanInFlight else { return }
+        if let last = localUsage?.scannedAt, Date().timeIntervalSince(last) < 30 { return }
+        scanInFlight = true
         Task.detached(priority: .utility) { [weak self] in
             let stats = await LocalUsageScanner.shared.scan()
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 self?.localUsage = stats
+                self?.scanInFlight = false
             }
         }
     }

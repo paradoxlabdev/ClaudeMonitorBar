@@ -22,7 +22,7 @@ struct LimitRowView: View {
 
             Spacer()
 
-            Text("\(Int(limit.percentage * 100))%")
+            Text("\(Int((limit.percentage * 100).rounded()))%")
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(limit.statusColor)
 

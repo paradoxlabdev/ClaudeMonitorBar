@@ -26,12 +26,16 @@ struct ClaudeMonitorBarApp: App {
         .menuBarExtraStyle(.window)
     }
 
-    /// Value of the limit selected to drive the percent menu bar text.
+    /// Value of the limit selected to drive the percent menu bar text, clamped to 0...1.
     private var metricValue: Double {
+        let raw: Double
         if prefs.menuBarMetric == "7d", sessionManager.usageLimits.count >= 2 {
-            return sessionManager.usageLimits[1].percentage
+            raw = sessionManager.usageLimits[1].percentage
+        } else {
+            raw = sessionManager.overallPercentage
         }
-        return sessionManager.overallPercentage
+        guard raw.isFinite else { return 0 }
+        return min(max(raw, 0), 1)
     }
 
     private static func statusNSColor(for pct: Double) -> NSColor {
@@ -41,12 +45,13 @@ struct ClaudeMonitorBarApp: App {
     }
 
     private func percentIcon() -> NSImage {
+        let hasData = !sessionManager.usageLimits.isEmpty
         let pct = metricValue
-        let text = "\(Int(pct * 100))%" as NSString
+        let text = (hasData ? "\(Int((pct * 100).rounded()))%" : "–") as NSString
         let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: Self.statusNSColor(for: pct)
+            .foregroundColor: hasData ? Self.statusNSColor(for: pct) : NSColor.gray
         ]
         let textSize = text.size(withAttributes: attrs)
         let size = NSSize(width: ceil(textSize.width) + 2, height: 18)

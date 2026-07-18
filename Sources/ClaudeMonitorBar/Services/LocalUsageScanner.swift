@@ -27,7 +27,8 @@ actor LocalUsageScanner {
 
     private struct MessageRecord {
         let dedupKey: String
-        let day: Date        // start of local day the message was created
+        let ts: Date         // raw message timestamp; day-bucketed at scan time
+                             // so cached records survive a system timezone change
         let model: String    // normalized display name
         let input: Int
         let output: Int
@@ -103,9 +104,10 @@ actor LocalUsageScanner {
 
         for rec in records {
             guard seenKeys.insert(rec.dedupKey).inserted else { continue }
-            guard rec.day >= weekStart, rec.day <= todayStart else { continue }
+            let day = calendar.startOfDay(for: rec.ts)
+            guard day >= weekStart, day <= todayStart else { continue }
             add(rec, to: &weekAgg)
-            if rec.day == todayStart {
+            if day == todayStart {
                 add(rec, to: &todayAgg)
             }
         }
@@ -135,43 +137,56 @@ actor LocalUsageScanner {
     }()
 
     private static func parseFile(at url: URL) -> [MessageRecord] {
-        guard let data = try? Data(contentsOf: url),
-              let content = String(data: data, encoding: .utf8) else { return [] }
+        // Byte-level line walk: avoids materializing the whole file as String
+        // plus a per-line Data copy, which tripled peak memory and parse time
+        guard let data = try? Data(contentsOf: url) else { return [] }
 
-        let calendar = Calendar.current
+        let newline = UInt8(ascii: "\n")
+        let needle = Data("assistant".utf8)
         var result: [MessageRecord] = []
+        var start = data.startIndex
 
-        for line in content.split(separator: "\n") {
-            // Cheap prefilter before JSON decoding; the parsed type check below is authoritative
-            guard line.contains("assistant") else { continue }
-            guard let lineData = line.data(using: .utf8),
-                  let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  obj["type"] as? String == "assistant",
-                  let message = obj["message"] as? [String: Any],
-                  let usage = message["usage"] as? [String: Any],
-                  let rawModel = message["model"] as? String,
-                  let model = normalizedModel(rawModel),
-                  let tsString = obj["timestamp"] as? String,
-                  let ts = isoFractional.date(from: tsString) ?? isoPlain.date(from: tsString)
-            else { continue }
-
-            let msgId = message["id"] as? String
-            let reqId = obj["requestId"] as? String
-            let dedupKey = (msgId != nil || reqId != nil)
-                ? "\(msgId ?? "")|\(reqId ?? "")"
-                : UUID().uuidString
-
-            result.append(MessageRecord(
-                dedupKey: dedupKey,
-                day: calendar.startOfDay(for: ts),
-                model: model,
-                input: usage["input_tokens"] as? Int ?? 0,
-                output: usage["output_tokens"] as? Int ?? 0,
-                cache: (usage["cache_creation_input_tokens"] as? Int ?? 0)
-                    + (usage["cache_read_input_tokens"] as? Int ?? 0)
-            ))
+        while start < data.endIndex {
+            let end = data[start...].firstIndex(of: newline) ?? data.endIndex
+            if end > start {
+                let line = data.subdata(in: start..<end)
+                // Cheap prefilter before JSON decoding; the parsed type check is authoritative
+                if line.range(of: needle) != nil,
+                   let obj = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+                   let rec = record(from: obj) {
+                    result.append(rec)
+                }
+            }
+            start = end < data.endIndex ? data.index(after: end) : data.endIndex
         }
         return result
+    }
+
+    private static func record(from obj: [String: Any]) -> MessageRecord? {
+        guard obj["type"] as? String == "assistant",
+              let message = obj["message"] as? [String: Any],
+              let usage = message["usage"] as? [String: Any],
+              let rawModel = message["model"] as? String,
+              let model = normalizedModel(rawModel),
+              let tsString = obj["timestamp"] as? String,
+              let ts = isoFractional.date(from: tsString) ?? isoPlain.date(from: tsString)
+        else { return nil }
+
+        let msgId = message["id"] as? String
+        let reqId = obj["requestId"] as? String
+        let dedupKey = (msgId != nil || reqId != nil)
+            ? "\(msgId ?? "")|\(reqId ?? "")"
+            : UUID().uuidString
+
+        return MessageRecord(
+            dedupKey: dedupKey,
+            ts: ts,
+            model: model,
+            input: usage["input_tokens"] as? Int ?? 0,
+            output: usage["output_tokens"] as? Int ?? 0,
+            cache: (usage["cache_creation_input_tokens"] as? Int ?? 0)
+                + (usage["cache_read_input_tokens"] as? Int ?? 0)
+        )
     }
 
     /// Collapse model ids and bare aliases into family buckets; nil = skip the entry.
