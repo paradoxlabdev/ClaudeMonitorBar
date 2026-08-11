@@ -120,13 +120,13 @@ struct MenuBarView: View {
                 }
 
                 // Usage history chart
-                if !sessionManager.usageHistory.isEmpty {
+                if !sessionManager.usageWindows.isEmpty {
                     Divider()
                         .background(Color.white.opacity(0.1))
                         .padding(.top, 8)
 
                     UsageChartView(
-                        history: sessionManager.usageHistory,
+                        windows: sessionManager.usageWindows,
                         fiveHourReset: sessionManager.usageLimits.first?.resetTimestamp,
                         sevenDayReset: sessionManager.usageLimits.count >= 2 ? sessionManager.usageLimits[1].resetTimestamp : nil,
                         currentFiveHour: sessionManager.usageLimits.first?.utilization ?? 0,

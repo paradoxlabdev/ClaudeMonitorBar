@@ -19,7 +19,7 @@ A native macOS menu bar app that displays your Claude Code API usage limits in r
 - **Percent menu bar style** — optionally show a numeric percentage (5h or 7d) instead of the ring
 - **Reset times** for each limit window
 - **Plan recommendation** — suggests upgrade, downgrade, or stay based on 7-day usage projection
-- **Usage history charts** — 5-hour and 7-day window bar charts with persistent history
+- **Usage history charts** — scrollable 5-hour and 7-day bar charts; every window is stored permanently, 8 fit on screen, and you scroll sideways through the whole history. Windows recorded while the app was closed appear as gaps rather than false zeroes
 - **Adaptive refresh** — automatically adjusts polling interval when usage is stable
 - **Auto-update** — checks GitHub for new releases and self-installs updates
 - **Notifications** — alerts at 80%, 90%, and 100% usage thresholds

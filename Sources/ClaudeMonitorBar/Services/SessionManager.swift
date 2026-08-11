@@ -17,7 +17,7 @@ class SessionManager {
     var overageStatus: String = ""
     var overageDisabledReason: String = ""
 
-    var usageHistory: [UsageSnapshot] = []
+    var usageWindows: [UsageWindow] = []
     var localUsage: LocalUsageStats?
 
     // Debug mode
@@ -58,7 +58,7 @@ class SessionManager {
     }
 
     func startMonitoring() {
-        usageHistory = UsageHistory.load()
+        usageWindows = WindowHistory.shared.load()
         fetchUsage()
         scheduleNextRefresh()
     }
@@ -154,14 +154,33 @@ class SessionManager {
                     }
                     self.previousUtilizations = current
 
-                    // Save to history
-                    let snapshot = UsageSnapshot(
-                        timestamp: Date(),
-                        fiveHourUtil: data.fiveHourUtilization,
-                        sevenDayUtil: data.sevenDayUtilization
+                    // Record the in-progress windows. A reset of 0 means the header was
+                    // absent (see RateLimitFetcher's 429-without-headers path) — that is
+                    // not a real window boundary, so skip it rather than stamping 1970.
+                    let fiveEnd = data.fiveHourReset > 0
+                        ? Date(timeIntervalSince1970: Double(data.fiveHourReset)) : nil
+                    let sevenEnd = data.sevenDayReset > 0
+                        ? Date(timeIntervalSince1970: Double(data.sevenDayReset)) : nil
+
+                    // Must run before the first record() call, which would create the file
+                    // and make the migration a no-op.
+                    WindowHistory.shared.migrateIfNeeded(
+                        snapshots: UsageHistory.load(),
+                        fiveHourReset: fiveEnd,
+                        sevenDayReset: sevenEnd
                     )
-                    UsageHistory.append(snapshot)
-                    self.usageHistory = UsageHistory.load()
+
+                    if let fiveEnd {
+                        WindowHistory.shared.record(
+                            kind: .fiveHour, end: fiveEnd, value: data.fiveHourUtilization
+                        )
+                    }
+                    if let sevenEnd {
+                        WindowHistory.shared.record(
+                            kind: .sevenDay, end: sevenEnd, value: data.sevenDayUtilization
+                        )
+                    }
+                    self.usageWindows = WindowHistory.shared.load()
 
                     // Check notifications
                     NotificationManager.checkAndNotify(limits: self.usageLimits)

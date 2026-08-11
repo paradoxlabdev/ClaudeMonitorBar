@@ -7,9 +7,10 @@ struct UsageSnapshot: Codable, Identifiable {
     let sevenDayUtil: Double
 }
 
+/// Legacy raw-snapshot log. Superseded by `WindowHistory`, which stores one row per
+/// window instead of one row per poll. Kept read-only as the migration source; the
+/// file itself is left on disk untouched.
 enum UsageHistory {
-    private static let maxDays = 30
-
     static var storageURL: URL {
         guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             return FileManager.default.temporaryDirectory.appendingPathComponent("ClaudeMonitorBar-history.json")
@@ -25,25 +26,5 @@ enum UsageHistory {
             return []
         }
         return snapshots
-    }
-
-    static func append(_ snapshot: UsageSnapshot) {
-        var history = load()
-
-        // Don't save more than once per 5 minutes
-        if let last = history.last,
-           snapshot.timestamp.timeIntervalSince(last.timestamp) < 300 {
-            return
-        }
-
-        history.append(snapshot)
-
-        // Trim to last N days
-        let cutoff = Date().addingTimeInterval(-Double(maxDays) * 86400)
-        history = history.filter { $0.timestamp > cutoff }
-
-        if let data = try? JSONEncoder().encode(history) {
-            try? data.write(to: storageURL)
-        }
     }
 }

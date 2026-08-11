@@ -6,5 +6,6 @@ final class SessionManagerTests: XCTestCase {
         let manager = SessionManager()
         XCTAssertTrue(manager.usageLimits.isEmpty)
         XCTAssertEqual(manager.overallPercentage, 0)
+        XCTAssertTrue(manager.usageWindows.isEmpty)
     }
 }
