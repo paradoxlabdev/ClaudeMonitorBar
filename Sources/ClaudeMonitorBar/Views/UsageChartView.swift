@@ -99,11 +99,18 @@ struct UsageChartView: View {
         }
         .chartXAxis {
             AxisMarks(values: labelDates(points)) { value in
-                AxisValueLabel {
+                // The newest mark sits half a window from the trailing edge, which is
+                // not enough room for a centred label — it renders clipped. Anchoring
+                // just that one to its trailing edge lets it grow inwards instead.
+                // Widening the domain would work too, but the empty slot it leaves at
+                // the right would read as a data gap.
+                let isLast = value.index == value.count - 1
+                AxisValueLabel(anchor: isLast ? .topTrailing : .top) {
                     if let date = value.as(Date.self) {
                         Text(Self.formatted(date, dateFormat))
                             .font(.system(size: 7))
                             .foregroundStyle(.white.opacity(0.3))
+                            .fixedSize(horizontal: true, vertical: false)
                     }
                 }
             }
