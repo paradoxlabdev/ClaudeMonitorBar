@@ -74,6 +74,49 @@ final class WindowHistory {
         save(windows)
     }
 
+    /// One-time backfill from the legacy raw-snapshot file so users upgrading do not
+    /// lose their existing history. No-op once `windows.json` exists.
+    ///
+    /// Snapshots carry no window boundaries, so they are bucketed backwards from the
+    /// live reset: a window ending at `E` covers `(E - W, E]`, therefore a snapshot at
+    /// `t` belongs to the window `floor((anchor - t) / W)` steps back from the anchor.
+    func migrateIfNeeded(snapshots: [UsageSnapshot], fiveHourReset: Date?, sevenDayReset: Date?) {
+        guard !FileManager.default.fileExists(atPath: storageURL.path) else { return }
+        guard !snapshots.isEmpty else { return }
+
+        var windows: [UsageWindow] = []
+        if let anchor = fiveHourReset {
+            windows += Self.bucket(snapshots, kind: .fiveHour, anchor: anchor) { $0.fiveHourUtil }
+        }
+        if let anchor = sevenDayReset {
+            windows += Self.bucket(snapshots, kind: .sevenDay, anchor: anchor) { $0.sevenDayUtil }
+        }
+
+        guard !windows.isEmpty else { return }
+        save(windows)
+    }
+
+    private static func bucket(
+        _ snapshots: [UsageSnapshot],
+        kind: WindowKind,
+        anchor: Date,
+        value: (UsageSnapshot) -> Double
+    ) -> [UsageWindow] {
+        var peaks: [TimeInterval: Double] = [:]
+
+        for snapshot in snapshots {
+            let delta = anchor.timeIntervalSince(snapshot.timestamp)
+            guard delta >= 0 else { continue }  // snapshot ahead of the reset — unusable
+            let stepsBack = (delta / kind.seconds).rounded(.down)
+            let end = anchor.timeIntervalSince1970 - stepsBack * kind.seconds
+            peaks[end] = max(peaks[end] ?? 0, value(snapshot))
+        }
+
+        return peaks
+            .map { UsageWindow(kind: kind, end: Date(timeIntervalSince1970: $0.key), peak: $0.value) }
+            .sorted { $0.end < $1.end }
+    }
+
     private func save(_ windows: [UsageWindow]) {
         let sorted = windows.sorted { $0.end < $1.end }
         guard let data = try? JSONEncoder().encode(sorted) else { return }

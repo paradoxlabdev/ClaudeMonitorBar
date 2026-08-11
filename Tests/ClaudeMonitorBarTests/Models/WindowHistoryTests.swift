@@ -99,4 +99,80 @@ final class WindowHistoryTests: XCTestCase {
         )
         XCTAssertTrue(store.load().isEmpty)
     }
+
+    // MARK: - migrateIfNeeded
+
+    func testMigrationBucketsSnapshotsByWindowAndKeepsMax() {
+        let anchor = Date(timeIntervalSince1970: 1_800_000_000)  // current 5h window end
+        let w = 5.0 * 3600
+        let snapshots = [
+            // previous window (ends at anchor - 5h)
+            UsageSnapshot(timestamp: anchor - w - 3600, fiveHourUtil: 0.30, sevenDayUtil: 0.50),
+            UsageSnapshot(timestamp: anchor - w - 600,  fiveHourUtil: 0.65, sevenDayUtil: 0.52),
+            // current window
+            UsageSnapshot(timestamp: anchor - 1800,     fiveHourUtil: 0.12, sevenDayUtil: 0.55),
+        ]
+
+        store.migrateIfNeeded(snapshots: snapshots, fiveHourReset: anchor, sevenDayReset: nil)
+
+        let five = store.load().filter { $0.kind == .fiveHour }
+        XCTAssertEqual(five.count, 2)
+        XCTAssertEqual(five[0].end, anchor - w)
+        XCTAssertEqual(five[0].peak, 0.65, accuracy: 0.0001)
+        XCTAssertEqual(five[1].end, anchor)
+        XCTAssertEqual(five[1].peak, 0.12, accuracy: 0.0001)
+    }
+
+    func testMigrationHandlesBothKinds() {
+        let fiveAnchor = Date(timeIntervalSince1970: 1_800_000_000)
+        let sevenAnchor = fiveAnchor.addingTimeInterval(3 * 86400)
+        let snapshots = [
+            UsageSnapshot(timestamp: fiveAnchor - 600, fiveHourUtil: 0.40, sevenDayUtil: 0.60)
+        ]
+
+        store.migrateIfNeeded(
+            snapshots: snapshots,
+            fiveHourReset: fiveAnchor,
+            sevenDayReset: sevenAnchor
+        )
+
+        let windows = store.load()
+        XCTAssertEqual(windows.filter { $0.kind == .fiveHour }.count, 1)
+        XCTAssertEqual(windows.filter { $0.kind == .sevenDay }.count, 1)
+        XCTAssertEqual(windows.first { $0.kind == .sevenDay }?.peak ?? 0, 0.60, accuracy: 0.0001)
+    }
+
+    func testMigrationIsSkippedOnceStoreExists() {
+        let anchor = Date(timeIntervalSince1970: 1_800_000_000)
+        store.record(kind: .fiveHour, end: anchor, value: 0.05)
+
+        store.migrateIfNeeded(
+            snapshots: [UsageSnapshot(timestamp: anchor - 600, fiveHourUtil: 0.99, sevenDayUtil: 0.99)],
+            fiveHourReset: anchor,
+            sevenDayReset: anchor
+        )
+
+        let windows = store.load()
+        XCTAssertEqual(windows.count, 1, "an existing store must not be overwritten")
+        XCTAssertEqual(windows[0].peak, 0.05, accuracy: 0.0001)
+    }
+
+    func testMigrationIgnoresSnapshotsNewerThanTheAnchor() {
+        let anchor = Date(timeIntervalSince1970: 1_800_000_000)
+        let snapshots = [
+            UsageSnapshot(timestamp: anchor + 3600, fiveHourUtil: 0.90, sevenDayUtil: 0.90),
+            UsageSnapshot(timestamp: anchor - 600,  fiveHourUtil: 0.25, sevenDayUtil: 0.25),
+        ]
+
+        store.migrateIfNeeded(snapshots: snapshots, fiveHourReset: anchor, sevenDayReset: nil)
+
+        let five = store.load().filter { $0.kind == .fiveHour }
+        XCTAssertEqual(five.count, 1)
+        XCTAssertEqual(five[0].peak, 0.25, accuracy: 0.0001)
+    }
+
+    func testMigrationWithNoSnapshotsWritesNothing() {
+        store.migrateIfNeeded(snapshots: [], fiveHourReset: Date(), sevenDayReset: Date())
+        XCTAssertTrue(store.load().isEmpty)
+    }
 }
