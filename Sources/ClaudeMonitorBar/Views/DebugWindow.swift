@@ -165,7 +165,7 @@ struct DebugWindowView: View {
                                     Spacer()
                                     Text("\(entry.statusCode)")
                                         .font(.system(size: 10, design: .monospaced))
-                                        .foregroundStyle(entry.statusCode == 200 ? .green.opacity(0.7) : .red.opacity(0.7))
+                                        .foregroundStyle(entry.statusCode == 200 ? Color.green.opacity(0.7) : Color.statusRed.opacity(0.85))
                                     Text(String(format: "%.0fms", entry.duration * 1000))
                                         .font(.system(size: 10, design: .monospaced))
                                         .foregroundStyle(.white.opacity(0.3))
@@ -173,7 +173,7 @@ struct DebugWindowView: View {
                                 if let error = entry.error {
                                     Text(error)
                                         .font(.system(size: 9))
-                                        .foregroundStyle(.red.opacity(0.5))
+                                        .foregroundStyle(Color.statusRed.opacity(0.65))
                                 }
                             }
                         }

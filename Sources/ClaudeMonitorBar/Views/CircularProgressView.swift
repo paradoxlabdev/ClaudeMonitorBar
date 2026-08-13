@@ -12,7 +12,7 @@ struct CircularProgressView: View {
         switch percentage {
         case ..<0.7: return .green
         case 0.7..<0.9: return .yellow
-        case 0.9...: return .red
+        case 0.9...: return .statusRed
         default: return .gray
         }
     }
@@ -33,25 +33,26 @@ struct CircularProgressView: View {
         ZStack {
             // Track
             Circle()
-                .stroke(Color.white.opacity(0.1), lineWidth: 8)
+                .stroke(Color.white.opacity(0.1), lineWidth: 9)
 
             // Progress
             Circle()
                 .trim(from: 0, to: percentage)
-                .stroke(progressColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                .stroke(progressColor, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.8), value: percentage)
 
             // Percentage text
             VStack(spacing: 2) {
                 Text("\(displayPercentage)%")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                 Text("Used")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.6))
             }
         }
-        .frame(width: 90, height: 90)
+        // "100%" at 28 pt needs ~76 pt of clear space inside the stroke.
+        .frame(width: 110, height: 110)
     }
 }

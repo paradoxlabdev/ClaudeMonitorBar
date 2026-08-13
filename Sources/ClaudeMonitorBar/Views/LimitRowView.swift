@@ -11,7 +11,7 @@ struct LimitRowView: View {
 
             Text(limit.name)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(limit.isRejected ? .red.opacity(0.9) : .white.opacity(0.9))
+                .foregroundStyle(limit.isRejected ? Color.statusRed : .white.opacity(0.9))
 
             if limit.isBinding {
                 Image(systemName: "bolt.fill")
@@ -23,11 +23,11 @@ struct LimitRowView: View {
             Spacer()
 
             Text("\(Int((limit.percentage * 100).rounded()))%")
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .font(.system(size: 15.5, weight: .medium, design: .monospaced))
                 .foregroundStyle(limit.statusColor)
 
             Text(limit.resetTimeFormatted)
-                .font(.system(size: 11, weight: .regular))
+                .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.white.opacity(0.5))
         }
         .padding(.horizontal, 16)

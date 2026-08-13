@@ -39,7 +39,7 @@ struct ClaudeMonitorBarApp: App {
     }
 
     private static func statusNSColor(for pct: Double) -> NSColor {
-        if pct >= 0.9 { return NSColor(red: 1.0, green: 0.2, blue: 0.15, alpha: 1.0) }
+        if pct >= 0.9 { return .statusRed }
         if pct >= 0.7 { return NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0) }
         return NSColor(red: 0.1, green: 0.85, blue: 0.2, alpha: 1.0)
     }

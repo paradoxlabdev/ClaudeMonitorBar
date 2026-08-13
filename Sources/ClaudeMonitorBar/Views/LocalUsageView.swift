@@ -51,16 +51,16 @@ struct LocalUsageView: View {
                                     .lineLimit(1)
                                     .truncationMode(.tail)
                                 Text("\(row.messages) msgs")
-                                    .font(.system(size: 9))
+                                    .font(.system(size: 11.5))
                                     .foregroundStyle(.white.opacity(0.3))
                                 Spacer()
                                 if totalOut > 0 {
                                     Text("\(Int((Double(row.outputTokens) / Double(totalOut) * 100).rounded()))%")
-                                        .font(.system(size: 9))
+                                        .font(.system(size: 11.5))
                                         .foregroundStyle(.white.opacity(0.3))
                                 }
                                 Text("\(Self.formatTokens(row.outputTokens)) out")
-                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .font(.system(size: 14, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.white.opacity(0.6))
                                     .layoutPriority(1)
                             }
@@ -71,7 +71,7 @@ struct LocalUsageView: View {
                     let totalCache = rows.reduce(0) { $0 + $1.cacheTokens }
                     HStack {
                         Text("In \(Self.formatTokens(totalIn)) · Out \(Self.formatTokens(totalOut)) · Cache \(Self.formatTokens(totalCache))")
-                            .font(.system(size: 9))
+                            .font(.system(size: 11.5))
                             .foregroundStyle(.white.opacity(0.25))
                         Spacer()
                     }

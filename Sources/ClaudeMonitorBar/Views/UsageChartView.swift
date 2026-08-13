@@ -92,23 +92,27 @@ struct UsageChartView: View {
                     .foregroundStyle(Color.white.opacity(0.1))
                 AxisValueLabel {
                     Text("\(value.as(Int.self) ?? 0)%")
-                        .font(.system(size: 7))
+                        .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.3))
                 }
             }
         }
         .chartXAxis {
             AxisMarks(values: labelDates(points)) { value in
-                // The newest mark sits half a window from the trailing edge, which is
-                // not enough room for a centred label — it renders clipped. Anchoring
-                // just that one to its trailing edge lets it grow inwards instead.
+                // The edge marks sit half a window from the edge of the domain, which is
+                // not enough room for a centred label — they render clipped. Anchoring
+                // just those to the edge they touch lets them grow inwards instead.
                 // Widening the domain would work too, but the empty slot it leaves at
-                // the right would read as a data gap.
-                let isLast = value.index == value.count - 1
-                AxisValueLabel(anchor: isLast ? .topTrailing : .top) {
+                // the edge would read as a data gap.
+                let anchor: UnitPoint = switch value.index {
+                case 0: .topLeading
+                case value.count - 1: .topTrailing
+                default: .top
+                }
+                AxisValueLabel(anchor: anchor) {
                     if let date = value.as(Date.self) {
                         Text(Self.formatted(date, dateFormat))
-                            .font(.system(size: 7))
+                            .font(.system(size: 9))
                             .foregroundStyle(.white.opacity(0.3))
                             .fixedSize(horizontal: true, vertical: false)
                     }
@@ -154,7 +158,7 @@ struct UsageChartView: View {
     }
 
     private func barColor(_ value: Double) -> Color {
-        if value >= 0.9 { return .red }
+        if value >= 0.9 { return .statusRed }
         if value >= 0.7 { return .yellow }
         return .green
     }

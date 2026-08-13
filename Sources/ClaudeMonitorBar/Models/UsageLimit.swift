@@ -16,7 +16,7 @@ struct UsageLimit: Identifiable {
         switch percentage {
         case ..<0.7: return .green
         case 0.7..<0.9: return .yellow
-        case 0.9...: return .red
+        case 0.9...: return .statusRed
         default: return .gray
         }
     }

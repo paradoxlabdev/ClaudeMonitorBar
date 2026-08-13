@@ -41,7 +41,7 @@ struct MenuBarView: View {
             } else if let error = sessionManager.fetchError, sessionManager.usageLimits.isEmpty {
                 Text(error)
                     .font(.system(size: 11))
-                    .foregroundStyle(.red.opacity(0.7))
+                    .foregroundStyle(Color.statusRed.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 20)
                     .padding(.horizontal, 16)
@@ -109,11 +109,11 @@ struct MenuBarView: View {
                         Text("Rate limit reached — refresh paused until reset")
                             .font(.system(size: 10))
                     }
-                    .foregroundStyle(.red.opacity(0.8))
+                    .foregroundStyle(Color.statusRed)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity)
-                    .background(Color.red.opacity(0.08))
+                    .background(Color.statusRed.opacity(0.12))
                     .cornerRadius(6)
                     .padding(.horizontal, 10)
                     .padding(.top, 4)
@@ -195,7 +195,7 @@ struct MenuBarView: View {
                             .font(.system(size: 11, weight: .medium))
                         Spacer()
                         Text("\(Int(progress * 100))%")
-                            .font(.system(size: 10))
+                            .font(.system(size: 13))
                     }
                     .foregroundStyle(.cyan)
                     ProgressView(value: progress)
@@ -282,7 +282,9 @@ struct MenuBarView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
-        .frame(width: 300)
+        // Wide enough that a limit row's larger percentage and reset time still fit
+        // beside the label without truncating.
+        .frame(width: 340)
         .background(Color(nsColor: NSColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)))
         .onAppear {
             sessionManager.refresh()
