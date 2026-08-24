@@ -22,6 +22,9 @@ DerivedData/
 
 # Credentials
 .netrc
+.env
+.env.*
+!.env.example
 
 # Legacy
 Usage4Claude-main/
