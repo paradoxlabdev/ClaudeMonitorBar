@@ -20,7 +20,13 @@ struct ClaudeMonitorBarApp: App {
             if prefs.menuBarStyle == "percent" {
                 Image(nsImage: percentIcon())
             } else {
-                Image(nsImage: menuBarIcon(color: Self.statusNSColor(for: sessionManager.overallPercentage)))
+                Image(nsImage: menuBarIcon(
+                    ringColor: MenuBarIconColor.status(for: sessionManager.overallPercentage),
+                    glyphColor: MenuBarIconColor.glyph(
+                        limits: sessionManager.usageLimits,
+                        ring: MenuBarIconColor.status(for: sessionManager.overallPercentage)
+                    )
+                ))
             }
         }
         .menuBarExtraStyle(.window)
@@ -38,12 +44,6 @@ struct ClaudeMonitorBarApp: App {
         return min(max(raw, 0), 1)
     }
 
-    private static func statusNSColor(for pct: Double) -> NSColor {
-        if pct >= 0.9 { return .statusRed }
-        if pct >= 0.7 { return NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0) }
-        return NSColor(red: 0.1, green: 0.85, blue: 0.2, alpha: 1.0)
-    }
-
     private func percentIcon() -> NSImage {
         let hasData = !sessionManager.usageLimits.isEmpty
         let pct = metricValue
@@ -51,7 +51,7 @@ struct ClaudeMonitorBarApp: App {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: hasData ? Self.statusNSColor(for: pct) : NSColor.gray
+            .foregroundColor: hasData ? MenuBarIconColor.status(for: pct) : NSColor.gray
         ]
         let textSize = text.size(withAttributes: attrs)
         let size = NSSize(width: ceil(textSize.width) + 2, height: 18)
@@ -81,11 +81,20 @@ struct ClaudeMonitorBarApp: App {
         }
     }
 
-    private var textColor: (NSColor) -> NSColor {
-        { color in color }
+    private func menuBarIcon(ringColor: NSColor, glyphColor: NSColor) -> NSImage {
+        Self.drawMenuBarIcon(
+            ringColor: ringColor,
+            glyphColor: glyphColor,
+            progress: sessionManager.overallPercentage,
+            ringBackground: ringBackgroundColor
+        )
     }
 
-    private func menuBarIcon(color: NSColor) -> NSImage {
+    /// Free of app state so it can be rendered offscreen — the glyph is 6pt, and how it
+    /// reads at that size is only answerable by looking at it.
+    static func drawMenuBarIcon(
+        ringColor: NSColor, glyphColor: NSColor, progress: Double, ringBackground: NSColor
+    ) -> NSImage {
         let size = NSSize(width: 18, height: 18)
         let img = NSImage(size: size)
         img.lockFocus()
@@ -99,24 +108,24 @@ struct ClaudeMonitorBarApp: App {
         let lineWidth: CGFloat = 2.5
 
         // Background ring
-        ctx.setStrokeColor(ringBackgroundColor.cgColor)
+        ctx.setStrokeColor(ringBackground.cgColor)
         ctx.setLineWidth(lineWidth)
         ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: .pi * 2, clockwise: false)
         ctx.strokePath()
 
-        // Progress arc
-        ctx.setStrokeColor(color.cgColor)
+        // Progress arc — the 5h window
+        ctx.setStrokeColor(ringColor.cgColor)
         ctx.setLineWidth(lineWidth)
         ctx.setLineCap(.round)
         let startAngle = CGFloat.pi / 2
-        let pct = max(sessionManager.overallPercentage, 0.05)
+        let pct = max(progress, 0.05)
         let endAngle = startAngle - .pi * 2 * pct
         ctx.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
         ctx.strokePath()
 
-        // ">_" text
+        // ">_" text — the weekly limit
         let font = NSFont.monospacedSystemFont(ofSize: 6, weight: .bold)
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: glyphColor]
         let text = ">_" as NSString
         let textSize = text.size(withAttributes: attrs)
         let textRect = NSRect(x: (18 - textSize.width) / 2, y: (18 - textSize.height) / 2,
